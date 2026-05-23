@@ -32,27 +32,30 @@ class EnergyData {
     }
 
     // Parse timestamp: ISO string, epoch-ms (>1e12), or epoch-s.
+    // Always return local time (GMT+1, Africa/Casablanca) so every
+    // display in the app shows the correct Morocco time regardless of
+    // whether the ESP32 sends UTC epoch integers or UTC ISO-8601 strings.
     DateTime parseTimestamp(dynamic raw) {
       if (raw == null) return DateTime.now();
       if (raw is int) {
-        return raw > 1000000000000
+        return (raw > 1000000000000
             ? DateTime.fromMillisecondsSinceEpoch(raw)
-            : DateTime.fromMillisecondsSinceEpoch(raw * 1000);
+            : DateTime.fromMillisecondsSinceEpoch(raw * 1000)).toLocal();
       }
       if (raw is double) {
         final ms = raw.toInt();
-        return ms > 1000000000000
+        return (ms > 1000000000000
             ? DateTime.fromMillisecondsSinceEpoch(ms)
-            : DateTime.fromMillisecondsSinceEpoch(ms * 1000);
+            : DateTime.fromMillisecondsSinceEpoch(ms * 1000)).toLocal();
       }
       if (raw is String) {
         final parsed = DateTime.tryParse(raw);
-        if (parsed != null) return parsed;
+        if (parsed != null) return parsed.toLocal();
         final epoch = int.tryParse(raw);
         if (epoch != null) {
-          return epoch > 1000000000000
+          return (epoch > 1000000000000
               ? DateTime.fromMillisecondsSinceEpoch(epoch)
-              : DateTime.fromMillisecondsSinceEpoch(epoch * 1000);
+              : DateTime.fromMillisecondsSinceEpoch(epoch * 1000)).toLocal();
         }
       }
       return DateTime.now();

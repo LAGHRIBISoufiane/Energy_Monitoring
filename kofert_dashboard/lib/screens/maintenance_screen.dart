@@ -143,15 +143,15 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                     itemBuilder: (ctx, i) {
                       final doc = docs[i];
                       final d = doc.data() as Map<String, dynamic>;
-                      final ts = (d['timestamp'] as Timestamp?)?.toDate() ??
-                          DateTime.now();
+                      final ts = ((d['timestamp'] as Timestamp?)?.toDate() ??
+                          DateTime.now()).toLocal();
                       final type = d['type'] as String? ?? 'inspection';
                       final tech = d['technicianName'] as String? ?? '';
                       final desc = d['description'] as String? ?? '';
                       final isResolved = d['resolved'] as bool? ?? false;
                       final resolvedBy = d['resolvedBy'] as String? ?? '';
                       final resolvedAt =
-                          (d['resolvedAt'] as Timestamp?)?.toDate();
+                          (d['resolvedAt'] as Timestamp?)?.toDate()?.toLocal();
                       final typeColor = type == 'repair'
                           ? const Color(0xFFE74C3C)
                           : type == 'calibration'

@@ -29,7 +29,7 @@ class ChatMessage {
       senderName: d['senderName'] as String? ?? 'Anonyme',
       senderEmail: d['senderEmail'] as String? ?? '',
       text: d['text'] as String? ?? '',
-      timestamp: (d['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      timestamp: ((d['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now()).toLocal(),
     );
   }
 
