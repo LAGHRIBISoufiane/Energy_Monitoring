@@ -134,7 +134,8 @@ class FirestoreLogService {
   /// Returns total energy (kWh sum of `energy` field) and reading count.
   Future<({double totalEnergy, int count})> getDailyEnergy(
       String unitId, DateTime day) async {
-    final start = DateTime.utc(day.year, day.month, day.day);
+    // Use local midnight boundaries so "a day" matches Morocco clock (GMT+1).
+    final start = DateTime(day.year, day.month, day.day);
     final end = start.add(const Duration(days: 1));
 
     final snap = await _db
