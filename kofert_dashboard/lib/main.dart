@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -108,6 +109,16 @@ class KofertDashboard extends StatelessWidget {
           darkTheme: _darkTheme,
           themeMode: mode,
           locale: AppStrings.locale,
+          supportedLocales: const [
+            Locale('fr'),
+            Locale('en'),
+            Locale('ar'),
+          ],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           debugShowCheckedModeBanner: false,
           home: StreamBuilder<User?>(
             stream: FirebaseAuth.instance.idTokenChanges(),

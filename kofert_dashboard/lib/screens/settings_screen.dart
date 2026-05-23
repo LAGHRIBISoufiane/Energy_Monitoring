@@ -368,6 +368,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         setState(() {
                           _language = value;
                         });
+                        languageNotifier.value = value; // apply immediately
                       }
                     },
                   ),

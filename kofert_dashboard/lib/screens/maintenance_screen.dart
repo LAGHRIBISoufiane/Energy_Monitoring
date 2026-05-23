@@ -17,6 +17,7 @@ class MaintenanceScreen extends StatefulWidget {
 class _MaintenanceScreenState extends State<MaintenanceScreen> {
   AppColors get _c => AppColors.of(context);
   String _selectedUnit = 'KOFERT_Unit_1';
+  String _statusFilter = 'all'; // 'all', 'pending', 'resolved'
 
   static const _units = ['KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
   static const _unitLabels = {
@@ -24,6 +25,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
     'KOFERT_Unit_2': 'Unit 2 – Ventilateur',
     'KOFERT_Unit_3': 'Unit 3 – Pompe',
   };
+  static const _resolvedGreen = Color(0xFF2ECC71);
 
   @override
   Widget build(BuildContext context) {
@@ -97,8 +99,20 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            // ── Log list ────────────────────────────────────────
+            const SizedBox(height: 24),            // ── Status filter chips ─────────────────────────────
+            Row(
+              children: [
+                _filterChip('all', AppStrings.t('filter_all'),
+                    Icons.list_alt_outlined),
+                const SizedBox(width: 8),
+                _filterChip('pending', AppStrings.t('filter_pending'),
+                    Icons.pending_actions_outlined),
+                const SizedBox(width: 8),
+                _filterChip('resolved', AppStrings.t('filter_resolved'),
+                    Icons.check_circle_outline),
+              ],
+            ),
+            const SizedBox(height: 16),            // ── Log list ────────────────────────────────────────
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -112,30 +126,32 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                         child: CircularProgressIndicator(color: kTeal));
                   }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.build_circle_outlined,
-                              size: 56, color: _c.textSec),
-                          const SizedBox(height: 14),
-                          Text(AppStrings.t('no_logs'),
-                              style:
-                                  TextStyle(color: _c.textSec, fontSize: 14)),
-                        ],
-                      ),
-                    );
+                    return _buildEmpty();
                   }
-                  final docs = snapshot.data!.docs;
+                  // Client-side status filter
+                  final docs = snapshot.data!.docs.where((doc) {
+                    final d = doc.data() as Map<String, dynamic>;
+                    final isResolved = d['resolved'] as bool? ?? false;
+                    if (_statusFilter == 'pending') return !isResolved;
+                    if (_statusFilter == 'resolved') return isResolved;
+                    return true;
+                  }).toList();
+                  if (docs.isEmpty) return _buildEmpty();
+
                   return ListView.builder(
                     itemCount: docs.length,
                     itemBuilder: (ctx, i) {
-                      final d = docs[i].data() as Map<String, dynamic>;
+                      final doc = docs[i];
+                      final d = doc.data() as Map<String, dynamic>;
                       final ts = (d['timestamp'] as Timestamp?)?.toDate() ??
                           DateTime.now();
                       final type = d['type'] as String? ?? 'inspection';
                       final tech = d['technicianName'] as String? ?? '';
                       final desc = d['description'] as String? ?? '';
+                      final isResolved = d['resolved'] as bool? ?? false;
+                      final resolvedBy = d['resolvedBy'] as String? ?? '';
+                      final resolvedAt =
+                          (d['resolvedAt'] as Timestamp?)?.toDate();
                       final typeColor = type == 'repair'
                           ? const Color(0xFFE74C3C)
                           : type == 'calibration'
@@ -153,20 +169,30 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                           color: _c.card,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                              color: typeColor.withValues(alpha: 0.25)),
+                            color: isResolved
+                                ? _resolvedGreen.withValues(alpha: 0.4)
+                                : typeColor.withValues(alpha: 0.25),
+                          ),
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
                               width: 42,
                               height: 42,
                               decoration: BoxDecoration(
-                                color: typeColor.withValues(alpha: 0.15),
+                                color: (isResolved ? _resolvedGreen : typeColor)
+                                    .withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Icon(typeIcon,
-                                  color: typeColor, size: 20),
+                              child: Icon(
+                                isResolved ? Icons.check_circle : typeIcon,
+                                color: isResolved ? _resolvedGreen : typeColor,
+                                size: 20,
+                              ),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
@@ -186,6 +212,29 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                                           AppStrings.t(type),
                                           style: TextStyle(
                                               color: typeColor,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      // Status badge
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: isResolved
+                                              ? _resolvedGreen.withValues(alpha: 0.15)
+                                              : kOrange.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          isResolved
+                                              ? AppStrings.t('resolved')
+                                              : AppStrings.t('pending'),
+                                          style: TextStyle(
+                                              color: isResolved
+                                                  ? _resolvedGreen
+                                                  : kOrange,
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600),
                                         ),
@@ -222,6 +271,77 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                             ),
                           ],
                         ),
+                        // ── Resolved info ──────────────────────────
+                        if (isResolved && resolvedBy.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _resolvedGreen.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.verified,
+                                    color: _resolvedGreen, size: 15),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    '${AppStrings.t('resolved_by')} $resolvedBy'
+                                    '${resolvedAt != null ? '  •  ${DateFormat('dd/MM/yyyy HH:mm').format(resolvedAt)}' : ''}',
+                                    style: const TextStyle(
+                                        color: _resolvedGreen, fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ]
+                        // ── Resolve action button ───────────────────
+                        else if (!isResolved) ...[
+                          ValueListenableBuilder<String>(
+                            valueListenable: roleNotifier,
+                            builder: (_, role, __) {
+                              if (role == 'viewer' || role == 'observer') {
+                                return const SizedBox.shrink();
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton.icon(
+                                    onPressed: () => _showResolveDialog(
+                                      doc.id,
+                                      d['unitId'] as String? ?? _selectedUnit,
+                                      desc,
+                                      type,
+                                    ),
+                                    icon: const Icon(
+                                        Icons.check_circle_outline, size: 16),
+                                    label: Text(AppStrings.t('mark_resolved'),
+                                        style:
+                                            const TextStyle(fontSize: 13)),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: _resolvedGreen,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 6),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(20),
+                                        side: BorderSide(
+                                            color: _resolvedGreen
+                                                .withValues(alpha: 0.5)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                        ],
+                      ),
                       );
                     },
                   );
@@ -232,6 +352,144 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildEmpty() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.build_circle_outlined, size: 56, color: _c.textSec),
+          const SizedBox(height: 14),
+          Text(AppStrings.t('no_logs'),
+              style: TextStyle(color: _c.textSec, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterChip(String value, String label, IconData icon) {
+    final isActive = _statusFilter == value;
+    final color = value == 'resolved'
+        ? _resolvedGreen
+        : value == 'pending'
+            ? kOrange
+            : kTeal;
+    return GestureDetector(
+      onTap: () => setState(() => _statusFilter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: isActive ? color.withValues(alpha: 0.15) : _c.card,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: isActive ? color : _c.divider.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: isActive ? color : _c.textSec),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? color : _c.textSec,
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showResolveDialog(
+      String docId, String unitId, String desc, String type) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _c.card,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.check_circle_outline,
+                color: _resolvedGreen, size: 22),
+            const SizedBox(width: 10),
+            Text(AppStrings.t('resolve_title'),
+                style: TextStyle(color: _c.textPri, fontSize: 16)),
+          ],
+        ),
+        content: Text(AppStrings.t('resolve_body'),
+            style: TextStyle(color: _c.textSec)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(AppStrings.t('close'),
+                style: TextStyle(color: _c.textSec)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.check, size: 16),
+            label: Text(AppStrings.t('confirm_resolve')),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _resolvedGreen,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final resolverName =
+          user?.displayName ?? user?.email ?? 'Anonyme';
+      await FirebaseFirestore.instance
+          .collection('maintenance_logs')
+          .doc(docId)
+          .update({
+        'resolved': true,
+        'resolvedAt': FieldValue.serverTimestamp(),
+        'resolvedBy': resolverName,
+        'resolvedByUid': user?.uid ?? '',
+      });
+      // Push notification to Alerts tab
+      alertLogNotifier.value = [
+        ...alertLogNotifier.value,
+        AlertEntry(
+          title: AppStrings.t('resolve_notify'),
+          detail: desc.isNotEmpty ? desc : AppStrings.t(type),
+          color: _resolvedGreen,
+          time: DateTime.now(),
+          unitId: unitId,
+        ),
+      ];
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Text('${AppStrings.t('resolved')} ✓'),
+            ]),
+            backgroundColor: _resolvedGreen,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    }
   }
 
   void _showAddEntryDialog() {
@@ -262,7 +520,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Unit selector
-                Text('Unité',
+                Text(AppStrings.t('unit_label'),
                     style: TextStyle(color: _c.textSec, fontSize: 12)),
                 const SizedBox(height: 6),
                 Container(
@@ -408,6 +666,7 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                     'description': descCtrl.text.trim(),
                     'timestamp': FieldValue.serverTimestamp(),
                     'createdBy': user?.uid ?? '',
+                    'resolved': false,
                   });
                   // Push a notification into the Alerts tab
                   final typeColor = selectedType == 'repair'
@@ -415,15 +674,10 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                       : selectedType == 'calibration'
                           ? kOrange
                           : kTeal;
-                  final typeLabel = selectedType == 'repair'
-                      ? 'Réparation'
-                      : selectedType == 'calibration'
-                          ? 'Calibration'
-                          : 'Inspection';
                   alertLogNotifier.value = [
                     ...alertLogNotifier.value,
                     AlertEntry(
-                      title: 'Maintenance – $typeLabel',
+                      title: 'Maintenance – ${AppStrings.t(selectedType)}',
                       detail: descCtrl.text.trim().isEmpty
                           ? 'Par $techName'
                           : descCtrl.text.trim(),
@@ -434,9 +688,9 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                   ];
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Journal ajouté ✓'),
-                        backgroundColor: Color(0xFF2ECC71),
+                      SnackBar(
+                        content: Text(AppStrings.t('log_added')),
+                        backgroundColor: const Color(0xFF2ECC71),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
