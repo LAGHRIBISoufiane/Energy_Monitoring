@@ -340,12 +340,18 @@ class _DarkSidebar extends StatelessWidget {
             isActive: selectedIndex == 4,
             onTap: () => onSelect(4),
           ),
-          _SidebarItem(
-            icon: Icons.settings_outlined,
-            activeIcon: Icons.settings,
-            label: AppStrings.t('settings'),
-            isActive: selectedIndex == 5,
-            onTap: () => onSelect(5),
+          ValueListenableBuilder<String>(
+            valueListenable: roleNotifier,
+            builder: (context, role, _) =>
+                (role == 'viewer' || role == 'observer')
+                ? const SizedBox.shrink()
+                : _SidebarItem(
+                    icon: Icons.settings_outlined,
+                    activeIcon: Icons.settings,
+                    label: AppStrings.t('settings'),
+                    isActive: selectedIndex == 5,
+                    onTap: () => onSelect(5),
+                  ),
           ),
           _SidebarItem(
             icon: Icons.chat_bubble_outline_rounded,

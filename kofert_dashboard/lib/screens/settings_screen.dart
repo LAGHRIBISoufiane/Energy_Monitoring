@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 // ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
-import '../main.dart' show kTeal, themeNotifier, selectedUnitNotifier, browserNotifNotifier;
+import '../main.dart' show kTeal, themeNotifier, selectedUnitNotifier, browserNotifNotifier, roleNotifier;
 import '../l10n/app_strings.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -110,7 +110,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [
-          // Alerts Section
+          // Alerts Section — admin & moderator only
+          if (roleNotifier.value == 'admin' || roleNotifier.value == 'moderator')
           _buildSection(
             'Alertes',
             Icons.warning,
@@ -189,9 +190,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
+          if (roleNotifier.value == 'admin' || roleNotifier.value == 'moderator')
           const SizedBox(height: 24),
           
-          // Monitoring Units Section
+          // Monitoring Units Section — admin, moderator & operator
           _buildSection(
             'Unités de Surveillance',
             Icons.location_on,
@@ -236,8 +238,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          
-          // Tariff Section
+
+          // Tariff / Display / Info — admin & moderator only
+          if (roleNotifier.value == 'admin' || roleNotifier.value == 'moderator') ...[          
           _buildSection(
             'Tarif Électrique',
             Icons.payments_outlined,
@@ -405,6 +408,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
+          ], // end admin/moderator only sections
         ],
       ),
           ),
