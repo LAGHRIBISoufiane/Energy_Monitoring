@@ -38,7 +38,10 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
   bool _isSendingEmail = false;
   List<EnergyData> _historicalData = [];
   List<EnergyData> _filteredData = [];
+  Map<String, List<EnergyData>> _allUnitsData = {};
+  Map<String, List<EnergyData>> _allUnitsFiltered = {};
   bool _isLoading = true;
+  DateTime _lastRefreshed = DateTime.now();
   String _selectedMetric = 'power';
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
   DateTime _endDate = DateTime.now();
@@ -46,14 +49,23 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
   double _tariffRate = 1.15;
   String _selectedUnit = 'KOFERT_Unit_1';
 
-  // Real-time listener
+  // Real-time listener & 5-second auto-refresh timer
   StreamSubscription? _rtSubscription;
+  Timer? _refreshTimer;
   final Set<String> _seenKeys = {};
 
-  static const _units = ['KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
+  static const _allUnitsKey = 'ALL_UNITS';
+  static const _allUnitsList = ['KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
+  static const _units = ['ALL_UNITS', 'KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
+  static final Map<String, Color> _unitColors = {
+    'KOFERT_Unit_1': kTeal,
+    'KOFERT_Unit_2': AppTheme.secondaryOrange,
+    'KOFERT_Unit_3': AppTheme.successGreen,
+  };
 
   static String _labelFor(String unit) {
     switch (unit) {
+      case 'ALL_UNITS': return 'Toutes les unités';
       case 'KOFERT_Unit_1': return AppStrings.t('device_lamp');
       case 'KOFERT_Unit_2': return AppStrings.t('device_fan_5v');
       case 'KOFERT_Unit_3': return AppStrings.t('device_pump_5v');
@@ -62,6 +74,7 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
   }
 
   static const _deviceIcon = {
+    'ALL_UNITS': Icons.grid_view,
     'KOFERT_Unit_1': Icons.lightbulb_outline,
     'KOFERT_Unit_2': Icons.air,
     'KOFERT_Unit_3': Icons.water_outlined,
@@ -74,6 +87,7 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
   }
 
   void _startRealTimeListener() {
+    if (_selectedUnit == _allUnitsKey) return; // timer handles all-units mode
     _rtSubscription?.cancel();
     _seenKeys.clear();
     // Pre-populate seenKeys so we only process NEW entries after initial load
@@ -113,41 +127,113 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
     });
     await _loadHistoricalData();
     _startRealTimeListener();
+    _startRefreshTimer();
   }
 
   Future<void> _switchUnit(String unit) async {
     _rtSubscription?.cancel();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selectedUnit', unit);
+    _refreshTimer?.cancel();
+    // Only persist real unit IDs to prefs, not ALL_UNITS
+    if (unit != _allUnitsKey) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('selectedUnit', unit);
+    }
     setState(() {
       _selectedUnit = unit;
       _historicalData.clear();
       _filteredData.clear();
+      _allUnitsData.clear();
+      _allUnitsFiltered.clear();
       _predictions = null;
     });
     await _loadHistoricalData();
     _startRealTimeListener();
+    _startRefreshTimer();
   }
 
   @override
   void dispose() {
     _rtSubscription?.cancel();
+    _refreshTimer?.cancel();
     super.dispose();
+  }
+
+  void _startRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted) _refreshData();
+    });
+  }
+
+  Future<void> _refreshData() async {
+    // Quiet refresh — no loading spinner
+    try {
+      if (_selectedUnit == _allUnitsKey) {
+        final results = await Future.wait(
+          _allUnitsList.map((u) => EnergyRepository.instance.getHistoricalData(u, limit: 500)),
+        );
+        if (!mounted) return;
+        final newAllData = <String, List<EnergyData>>{};
+        for (int i = 0; i < _allUnitsList.length; i++) {
+          newAllData[_allUnitsList[i]] = results[i];
+        }
+        setState(() {
+          _allUnitsData = newAllData;
+          _historicalData = [for (final l in newAllData.values) ...l]
+            ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+          _applyDateFilter();
+          _lastRefreshed = DateTime.now();
+        });
+      } else {
+        final dataList = await EnergyRepository.instance
+            .getHistoricalData(_selectedUnit, limit: 500);
+        if (!mounted) return;
+        setState(() {
+          _historicalData = dataList;
+          _applyDateFilter();
+          _lastRefreshed = DateTime.now();
+        });
+        _runPredictions();
+      }
+    } catch (_) {
+      // Silent fail — existing data remains visible
+    }
   }
 
   Future<void> _loadHistoricalData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final dataList = await EnergyRepository.instance
-          .getHistoricalData(_selectedUnit, limit: 500);
-      if (!mounted) return;
-      setState(() {
-        _historicalData = dataList;
-        _applyDateFilter();
-        _isLoading = false;
-      });
-      _runPredictions();
+      if (_selectedUnit == _allUnitsKey) {
+        final results = await Future.wait(
+          _allUnitsList.map((u) => EnergyRepository.instance.getHistoricalData(u, limit: 500)),
+        );
+        if (!mounted) return;
+        final newAllData = <String, List<EnergyData>>{};
+        for (int i = 0; i < _allUnitsList.length; i++) {
+          newAllData[_allUnitsList[i]] = results[i];
+        }
+        setState(() {
+          _allUnitsData = newAllData;
+          _historicalData = [for (final l in newAllData.values) ...l]
+            ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+          _applyDateFilter();
+          _isLoading = false;
+          _lastRefreshed = DateTime.now();
+        });
+      } else {
+        final dataList = await EnergyRepository.instance
+            .getHistoricalData(_selectedUnit, limit: 500);
+        if (!mounted) return;
+        setState(() {
+          _historicalData = dataList;
+          _allUnitsData = {};
+          _applyDateFilter();
+          _isLoading = false;
+          _lastRefreshed = DateTime.now();
+        });
+        _runPredictions();
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -158,11 +244,22 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
   }
 
   void _applyDateFilter() {
-    _filteredData = _historicalData
-        .where((data) =>
-            !data.timestamp.isBefore(_startDate) &&
-            !data.timestamp.isAfter(_endDate))
-        .toList();
+    if (_selectedUnit == _allUnitsKey) {
+      _allUnitsFiltered = {};
+      for (final entry in _allUnitsData.entries) {
+        _allUnitsFiltered[entry.key] = entry.value
+            .where((d) => !d.timestamp.isBefore(_startDate) && !d.timestamp.isAfter(_endDate))
+            .toList();
+      }
+      _filteredData = [for (final l in _allUnitsFiltered.values) ...l]
+        ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    } else {
+      _filteredData = _historicalData
+          .where((data) =>
+              !data.timestamp.isBefore(_startDate) &&
+              !data.timestamp.isAfter(_endDate))
+          .toList();
+    }
   }
 
   void _runPredictions() {
@@ -589,7 +686,7 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
                                     color: kTeal, size: 16),
                                 const SizedBox(width: 8),
                                 Text(
-                                    '$u  —  ${_labelFor(u)}',
+                                    u == 'ALL_UNITS' ? _labelFor(u) : '$u  —  ${_labelFor(u)}',
                                     style: TextStyle(
                                         color: _c.textPri)),
                               ]),
@@ -631,6 +728,27 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
                     PopupMenuItem(value: 'json', child: Row(children: [Icon(Icons.code, color: kTeal), const SizedBox(width: 10), const Text('Exporter JSON')])),
                   ],
                   icon: Icon(Icons.download, color: _c.textPri),
+                ),
+              ],
+            ),
+          ),
+          // ── Auto-refresh status bar ──────────────────────────────────────────
+          Container(
+            color: _c.card,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+            child: Row(
+              children: [
+                Container(
+                  width: 8, height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.successGreen,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Actualisation auto toutes les 5s  •  Mise à jour: ${DateFormat('HH:mm:ss').format(_lastRefreshed)}',
+                  style: TextStyle(color: _c.textSec, fontSize: 11),
                 ),
               ],
             ),
@@ -699,7 +817,7 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                if (_predictions != null) ...[
+                if (_predictions != null && _selectedUnit != _allUnitsKey) ...[
                   _buildAIPredictions(_predictions!),
                   const SizedBox(height: 24),
                 ],
@@ -1150,15 +1268,30 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
                         labelFormat: _getYAxisFormat(),
                         labelStyle: Theme.of(context).textTheme.labelSmall,
                       ),
-                      series: <CartesianSeries>[
-                        LineSeries<EnergyData, DateTime>(
-                          dataSource: _filteredData,
-                          xValueMapper: (data, _) => data.timestamp,
-                          yValueMapper: (data, _) => _getMetricValue(data),
-                          color: _getMetricColor(),
-                          width: 2.5,
-                        ),
-                      ],
+                      legend: _selectedUnit == _allUnitsKey
+                          ? const Legend(isVisible: true, position: LegendPosition.bottom)
+                          : const Legend(isVisible: false),
+                      series: _selectedUnit == _allUnitsKey
+                          ? <CartesianSeries>[
+                              for (final u in _allUnitsList)
+                                LineSeries<EnergyData, DateTime>(
+                                  name: _labelFor(u),
+                                  dataSource: _allUnitsFiltered[u] ?? [],
+                                  xValueMapper: (data, _) => data.timestamp,
+                                  yValueMapper: (data, _) => _getMetricValue(data),
+                                  color: _unitColors[u]!,
+                                  width: 2,
+                                ),
+                            ]
+                          : <CartesianSeries>[
+                              LineSeries<EnergyData, DateTime>(
+                                dataSource: _filteredData,
+                                xValueMapper: (data, _) => data.timestamp,
+                                yValueMapper: (data, _) => _getMetricValue(data),
+                                color: _getMetricColor(),
+                                width: 2.5,
+                              ),
+                            ],
                       tooltipBehavior: TooltipBehavior(
                         enable: true,
                         borderColor: AppTheme.primaryNavy,
@@ -1175,6 +1308,7 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
 
   Widget _buildStatistics() {
     if (_filteredData.isEmpty) return const SizedBox.shrink();
+    if (_selectedUnit == _allUnitsKey) return _buildAllUnitsStatistics();
 
     final values = _filteredData.map((data) => _getMetricValue(data)).toList();
     final min = values.reduce((a, b) => a < b ? a : b);
@@ -1304,17 +1438,22 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
                       ),
                       itemBuilder: (context, index) {
                         final data = _filteredData[_filteredData.length - 1 - index];
+                        final rowColor = _selectedUnit == _allUnitsKey
+                            ? (_unitColors[data.unitId] ?? kTeal)
+                            : _getMetricColor();
                         return ListTile(
                           contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
                           leading: Container(
                             decoration: BoxDecoration(
-                              color: _getMetricColor().withValues(alpha: 0.15),
+                              color: rowColor.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             padding: const EdgeInsets.all(8),
                             child: Icon(
-                              _getMetricIcon(),
-                              color: _getMetricColor(),
+                              _selectedUnit == _allUnitsKey
+                                  ? (_deviceIcon[data.unitId] ?? Icons.power)
+                                  : _getMetricIcon(),
+                              color: rowColor,
                               size: 20,
                             ),
                           ),
@@ -1325,12 +1464,13 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
                             ),
                           ),
                           subtitle: Text(
-                            '${_getMetricLabel()}: ${_getMetricValue(data).toStringAsFixed(2)} ${_getMetricUnit()}',
+                            '${_getMetricLabel()}: ${_getMetricValue(data).toStringAsFixed(2)} ${_getMetricUnit()}'
+                            '${_selectedUnit == _allUnitsKey ? "  \u2022  ${_labelFor(data.unitId)}" : ""}',
                             style: Theme.of(context).textTheme.labelSmall,
                           ),
                           trailing: Container(
                             decoration: BoxDecoration(
-                              color: _getMetricColor().withValues(alpha: 0.1),
+                              color: rowColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1338,7 +1478,7 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
                               _getMetricValue(data).toStringAsFixed(1),
                               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                 fontWeight: FontWeight.w700,
-                                color: _getMetricColor(),
+                                color: rowColor,
                               ),
                             ),
                           ),
@@ -1462,5 +1602,63 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
 
   String _formatTimestamp(DateTime timestamp) {
     return '${timestamp.day.toString().padLeft(2, '0')}/${timestamp.month.toString().padLeft(2, '0')} ${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildAllUnitsStatistics() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Statistiques par Unité — ${_getMetricLabel()}',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ..._allUnitsList.map(_buildUnitStatRow),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUnitStatRow(String unit) {
+    final data = _allUnitsFiltered[unit] ?? [];
+    if (data.isEmpty) return const SizedBox.shrink();
+    final values = data.map(_getMetricValue).toList();
+    final minVal = values.reduce((a, b) => a < b ? a : b);
+    final maxVal = values.reduce((a, b) => a > b ? a : b);
+    final avg = values.reduce((a, b) => a + b) / values.length;
+    final color = _unitColors[unit] ?? kTeal;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Icon(_deviceIcon[unit]!, color: color, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            _labelFor(unit),
+            style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '(${data.length} pts)',
+            style: TextStyle(color: _c.textSec, fontSize: 11),
+          ),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(child: _buildStatItem('Min', minVal.toStringAsFixed(2), _getMetricUnit(), color)),
+          Container(width: 1, height: 60, color: Colors.grey[200]),
+          Expanded(child: _buildStatItem('Max', maxVal.toStringAsFixed(2), _getMetricUnit(), color)),
+          Container(width: 1, height: 60, color: Colors.grey[200]),
+          Expanded(child: _buildStatItem('Moy', avg.toStringAsFixed(2), _getMetricUnit(), color)),
+        ]),
+        if (unit != _allUnitsList.last) Divider(color: Colors.grey[200], height: 24),
+      ],
+    );
   }
 }
