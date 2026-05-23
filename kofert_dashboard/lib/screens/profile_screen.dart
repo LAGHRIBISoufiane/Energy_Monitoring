@@ -108,7 +108,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _avatarImageBase64 = d['avatarImageBase64'] as String?;
         // Presence
         _presenceStatus = d['presenceStatus'] as String? ?? 'online';
-        _role = d['role'] as String? ?? 'viewer';
+        // Always enforce admin role for the designated admin account.
+        if (user.email?.toLowerCase() == 'soufianelaghri1@gmail.com') {
+          _role = 'admin';
+          if ((d['role'] as String?) != 'admin') {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .set({'role': 'admin'}, SetOptions(merge: true));
+          }
+        } else {
+          _role = d['role'] as String? ?? 'viewer';
+        }
         // Keep roleNotifier in sync with fresh data from profile load
         roleNotifier.value = _role;
 

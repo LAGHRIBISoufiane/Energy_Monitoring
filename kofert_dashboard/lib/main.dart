@@ -188,18 +188,12 @@ class _MainScreenState extends State<MainScreen> {
       final doc = await ref.get();
       final data = doc.data();
 
-      // Bootstrap: grant moderator role to soufianelaghri1@gmail.com if
-      // their account exists but has no elevated role yet.
+      // Always ensure soufianelaghri1@gmail.com has the admin role.
       if (user.email?.toLowerCase() == 'soufianelaghri1@gmail.com') {
-        final currentRole = data?['role'] as String?;
-        if (currentRole == null || currentRole == 'viewer') {
-          await ref.set({
-            'role': 'moderator',
-            'email': user.email,
-          }, SetOptions(merge: true));
-          roleNotifier.value = 'moderator';
-          return;
-        }
+        await ref.set({'role': 'admin', 'email': user.email},
+            SetOptions(merge: true));
+        roleNotifier.value = 'admin';
+        return;
       }
 
       roleNotifier.value = data?['role'] as String? ?? 'viewer';

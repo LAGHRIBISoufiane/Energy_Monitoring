@@ -47,10 +47,25 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // ── users (role store) ──────────────────────────────────────────────────
+    // ── users (role store + profile) ───────────────────────────────────────
     match /users/{userId} {
+      // Anyone signed-in can read their own document; admins can read all.
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAdmin();
+
+      // On first login a user creates their own document — any fields allowed
+      // (bootstrap: admin account sets its own role during initial provisioning).
+      allow create: if isSignedIn() && request.auth.uid == userId;
+
+      // Updates by the document owner: allowed only if 'role' is NOT being changed.
+      // Moderator can update any user's role (but cannot promote to 'admin').
+      // Admin can do anything.
+      allow update: if
+        (isSignedIn() && request.auth.uid == userId
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+        || (isModerator() && request.resource.data.get('role', resource.data.get('role', 'viewer')) != 'admin')
+        || isAdmin();
+
+      allow delete: if isAdmin();
     }
 
     // Deny everything else
