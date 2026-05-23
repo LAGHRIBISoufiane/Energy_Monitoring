@@ -211,15 +211,35 @@ class _MainScreenState extends State<MainScreen> {
     final c = AppColors.of(context);
     final isMobile = MediaQuery.of(context).size.width < 700;
     if (isMobile) {
+      const mobileNavScreens = [0, 1, 3, 6, 7];
+      final bottomNavIdx = mobileNavScreens.contains(_selectedIndex)
+          ? mobileNavScreens.indexOf(_selectedIndex)
+          : 0;
       return Scaffold(
         backgroundColor: c.bg,
         appBar: AppBar(
           backgroundColor: c.card,
           elevation: 0,
-          titleSpacing: 8,
-          title: Text('KOFERT Energy',
-              style: TextStyle(color: c.textPri, fontWeight: FontWeight.bold, fontSize: 17)),
+          titleSpacing: 0,
           iconTheme: IconThemeData(color: c.textPri),
+          title: Row(children: [
+            const SizedBox(width: 4),
+            Container(
+              width: 30, height: 30,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(Radius.circular(7)),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Image.asset('assets/images/ocp_logo.png', fit: BoxFit.contain),
+            ),
+            const SizedBox(width: 8),
+            Text('KOFERT Energy',
+                style: TextStyle(color: c.textPri, fontWeight: FontWeight.bold, fontSize: 15)),
+          ]),
+          actions: const [
+            Padding(padding: EdgeInsets.only(right: 8), child: QuickSettingsBar()),
+          ],
         ),
         drawer: Drawer(
           width: 240,
@@ -233,6 +253,60 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ),
         body: _screens[_selectedIndex],
+        bottomNavigationBar: ValueListenableBuilder<List<AlertEntry>>(
+          valueListenable: alertLogNotifier,
+          builder: (context, log, _) => BottomNavigationBar(
+            currentIndex: bottomNavIdx,
+            backgroundColor: c.card,
+            selectedItemColor: kTeal,
+            unselectedItemColor: c.textSec,
+            type: BottomNavigationBarType.fixed,
+            selectedFontSize: 10,
+            unselectedFontSize: 10,
+            onTap: (i) => setState(() => _selectedIndex = mobileNavScreens[i]),
+            items: [
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.dashboard_outlined, size: 22),
+                activeIcon: const Icon(Icons.dashboard, size: 22),
+                label: AppStrings.t('dashboard'),
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.history_outlined, size: 22),
+                activeIcon: const Icon(Icons.history, size: 22),
+                label: AppStrings.t('historical'),
+              ),
+              BottomNavigationBarItem(
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(Icons.notifications_outlined, size: 22),
+                    if (log.isNotEmpty)
+                      Positioned(
+                        right: -3, top: -3,
+                        child: Container(
+                          width: 9, height: 9,
+                          decoration: const BoxDecoration(
+                              color: Color(0xFFE74C3C), shape: BoxShape.circle),
+                        ),
+                      ),
+                  ],
+                ),
+                activeIcon: const Icon(Icons.notifications, size: 22),
+                label: AppStrings.t('alerts'),
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 22),
+                activeIcon: const Icon(Icons.chat_bubble_rounded, size: 22),
+                label: AppStrings.t('chat'),
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.person_outline_rounded, size: 22),
+                activeIcon: const Icon(Icons.person_rounded, size: 22),
+                label: AppStrings.t('profile'),
+              ),
+            ],
+          ),
+        ),
       );
     }
     return Scaffold(

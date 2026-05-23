@@ -137,6 +137,78 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 700;
+    final formChild = AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      transitionBuilder: (child, anim) =>
+          FadeTransition(opacity: anim, child: child),
+      child: _showSignup
+          ? _SignupForm(
+              key: const ValueKey('signup'),
+              onSwitchToLogin: () => setState(() => _showSignup = false),
+            )
+          : _LoginForm(
+              key: const ValueKey('login'),
+              onSwitchToSignup: () => setState(() => _showSignup = true),
+            ),
+    );
+
+    if (isMobile) {
+      return Scaffold(
+        backgroundColor: c.bg,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Compact branding header with language/theme switcher
+              Container(
+                color: c.sidebar,
+                padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42, height: 42,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                              color: kTeal.withValues(alpha: 0.3),
+                              blurRadius: 10),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(5),
+                      child: Image.asset('assets/images/ocp_logo.png',
+                          fit: BoxFit.contain),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('OCP Group',
+                              style: TextStyle(
+                                  color: c.textPri,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14)),
+                          Text(AppStrings.t('kofert_subtitle'),
+                              style: TextStyle(color: c.textSec, fontSize: 10),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                    const QuickSettingsBar(),
+                  ],
+                ),
+              ),
+              Expanded(child: formChild),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: c.bg,
       body: Stack(
@@ -144,24 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Row(
             children: [
               const _LeftPanel(),
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  transitionBuilder: (child, anim) =>
-                      FadeTransition(opacity: anim, child: child),
-                  child: _showSignup
-                      ? _SignupForm(
-                          key: const ValueKey('signup'),
-                          onSwitchToLogin: () =>
-                              setState(() => _showSignup = false),
-                        )
-                      : _LoginForm(
-                          key: const ValueKey('login'),
-                          onSwitchToSignup: () =>
-                              setState(() => _showSignup = true),
-                        ),
-                ),
-              ),
+              Expanded(child: formChild),
             ],
           ),
           const Positioned(
@@ -360,10 +415,11 @@ class _LoginFormState extends State<_LoginForm> {
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 600;
     return Center(
       child: SingleChildScrollView(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+        padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 22 : 48, vertical: isMobile ? 28 : 40),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: Form(
@@ -642,14 +698,22 @@ class _SignupFormState extends State<_SignupForm> {
     }
   }
 
-  Widget _row(Widget left, Widget right) => Row(
+  Widget _row(Widget left, Widget right) {
+    if (MediaQuery.of(context).size.width < 600) {
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: left),
-          const SizedBox(width: 16),
-          Expanded(child: right),
-        ],
+        children: [left, const SizedBox(height: 16), right],
       );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: left),
+        const SizedBox(width: 16),
+        Expanded(child: right),
+      ],
+    );
+  }
 
   Widget _labelled({required String label, required Widget field}) {
     final c = AppColors.of(context);
@@ -677,10 +741,11 @@ class _SignupFormState extends State<_SignupForm> {
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 600;
     return Center(
       child: SingleChildScrollView(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+        padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 20 : 48, vertical: isMobile ? 24 : 40),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 540),
           child: Form(
