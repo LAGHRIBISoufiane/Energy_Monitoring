@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "sensor_readings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId",    "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sensor_readings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId",    "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

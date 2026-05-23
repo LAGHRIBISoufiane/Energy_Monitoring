@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin()     { return isSignedIn() && role() == 'admin'; }
+    function isModerator() { return isSignedIn() && (role() == 'admin' || role() == 'moderator'); }
+    function isOperator()  { return isSignedIn() && role() in ['admin', 'moderator', 'operator']; }
+    function isAnyUser()   { return isSignedIn() && role() in ['admin', 'moderator', 'operator', 'observer', 'viewer']; }
+
+    // ── sensor_readings (time-series, one doc per unit per minute) ──────────
+    // Write: any authenticated operator or above (dashboard writes via service)
+    // Read:  any authenticated user
+    match /sensor_readings/{readingId} {
+      allow read: if isAnyUser();
+      allow create: if isOperator()
+        && request.resource.data.keys().hasAll(['unitId', 'timestamp', 'voltage', 'current'])
+        && request.resource.data.unitId is string
+        && request.resource.data.unitId in ['KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
+      allow update, delete: if isAdmin();
+    }
+
+    // ── unit_status (latest snapshot per unit, one doc per unit) ───────────
+    // Write: operator+ (dashboard upserts via service)
+    // Read:  any authenticated user
+    match /unit_status/{unitId} {
+      allow read: if isAnyUser();
+      allow write: if isOperator()
+        && unitId in ['KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
+    }
+
+    // ── maintenance_logs ────────────────────────────────────────────────────
+    match /maintenance_logs/{logId} {
+      allow read: if isAnyUser();
+      allow create: if isOperator()
+        && request.resource.data.keys().hasAll(['unitId', 'type', 'technicianName', 'timestamp', 'createdBy']);
+      allow update: if isOperator();
+      allow delete: if isAdmin();
+    }
+
+    // ── users (role store) ──────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

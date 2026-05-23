@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/energy_data.dart';
+import 'firestore_log_service.dart';
 
 /// Singleton repository — wraps Firebase Realtime DB with a SharedPreferences
 /// cache so the app can display the last known reading when offline.
@@ -27,6 +28,7 @@ class EnergyRepository {
           unitId,
         );
         _saveCache(unitId, data); // fire-and-forget
+        FirestoreLogService.instance.logReading(data); // fire-and-forget
         return data;
       } catch (_) {
         return null;
