@@ -8,6 +8,7 @@ import '../theme/app_colors.dart';
 import '../main.dart' show kTeal, kOrange;
 import '../models/chat_message.dart';
 import '../services/presence_service.dart';
+import '../widgets/user_avatar.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ChatScreen – two tabs: Global Chat  |  Direct Messages
@@ -273,7 +274,7 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
     Future<void> doSearch(StateSetter setS) async {
       final raw = ctrl.text.trim();
       if (raw.isEmpty) {
-        setS(() => error = 'Entrez un nom ou un #ID');
+        setS(() => error = 'Entrez un nom, email ou #ID');
         return;
       }
       setS(() { isSearching = true; error = null; results = []; });
@@ -317,6 +318,17 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
             final r = toRecord(d.id, d.data());
             if (r != null) found.add(r);
           }
+        } else if (raw.contains('@')) {
+          // Email search
+          final q = await FirebaseFirestore.instance
+              .collection('users')
+              .where('email', isEqualTo: raw.toLowerCase())
+              .limit(3)
+              .get();
+          for (final d in q.docs) {
+            final r = toRecord(d.id, d.data());
+            if (r != null) found.add(r);
+          }
         } else if (raw.length >= 20 &&
                    !raw.contains(' ') &&
                    RegExp(r'^[A-Za-z0-9]+$').hasMatch(raw)) {
@@ -330,25 +342,58 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
             if (r != null) found.add(r);
           }
         } else {
-          // Name prefix search — title-case for typical storage format
-          final name = raw[0].toUpperCase() + raw.substring(1).toLowerCase();
-          final q1 = await FirebaseFirestore.instance
-              .collection('users')
-              .where('firstName', isGreaterThanOrEqualTo: name)
-              .where('firstName', isLessThanOrEqualTo: '$name\uf8ff')
-              .limit(5)
-              .get();
-          final q2 = await FirebaseFirestore.instance
-              .collection('users')
-              .where('lastName', isGreaterThanOrEqualTo: name)
-              .where('lastName', isLessThanOrEqualTo: '$name\uf8ff')
-              .limit(5)
-              .get();
-          final seen = <String>{};
-          for (final d in [...q1.docs, ...q2.docs]) {
-            if (!seen.add(d.id)) continue;
-            final r = toRecord(d.id, d.data());
-            if (r != null) found.add(r);
+          // Full-name / first-name / last-name / displayName search.
+          // Firestore range queries are case-sensitive, so we try several
+          // capitalisation variants of each token to maximise hit rate.
+          List<String> variants(String token) {
+            if (token.isEmpty) return [];
+            return {
+              token,
+              token.toLowerCase(),
+              token.toUpperCase(),
+              token[0].toUpperCase() + token.substring(1).toLowerCase(),
+            }.toList();
+          }
+
+          final parts = raw.trim().split(RegExp(r'\s+'));
+          final seen  = <String>{};
+
+          Future<void> rangeQuery(String field, String prefix) async {
+            for (final v in variants(prefix)) {
+              final q = await FirebaseFirestore.instance
+                  .collection('users')
+                  .where(field, isGreaterThanOrEqualTo: v)
+                  .where(field, isLessThanOrEqualTo: '$v\uf8ff')
+                  .limit(5)
+                  .get();
+              for (final d in q.docs) {
+                if (!seen.add(d.id)) continue;
+                final r = toRecord(d.id, d.data());
+                if (r != null) found.add(r);
+              }
+            }
+          }
+
+          if (parts.length >= 2) {
+            // "Firstname Lastname" — search each part against its field
+            await Future.wait([
+              rangeQuery('firstName', parts[0]),
+              rangeQuery('lastName',  parts[1]),
+              rangeQuery('displayName', raw),
+            ]);
+            // Also cross-check: firstName = parts[0] AND lastName = parts[1]
+            // already captured above; additionally try reversed order
+            await Future.wait([
+              rangeQuery('firstName', parts[1]),
+              rangeQuery('lastName',  parts[0]),
+            ]);
+          } else {
+            // Single token — try all name fields
+            await Future.wait([
+              rangeQuery('firstName',   raw),
+              rangeQuery('lastName',    raw),
+              rangeQuery('displayName', raw),
+            ]);
           }
         }
       } catch (_) {}
@@ -380,7 +425,7 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
                 autofocus: true,
                 style: TextStyle(color: c.textPri),
                 decoration: InputDecoration(
-                  hintText: 'Nom, #ID ou UID Firebase',
+                  hintText: 'Add by Email, UID or by FullName',
                   hintStyle: TextStyle(color: c.textSec),
                   prefixIcon: Icon(Icons.search_rounded, color: c.textSec, size: 20),
                   filled: true,
@@ -409,15 +454,7 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
               if (results.isNotEmpty) ...[const SizedBox(height: 10),
                 ...results.map((u) => ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: kTeal.withValues(alpha: 0.2),
-                    child: Text(
-                      u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
-                      style: const TextStyle(color: kTeal, fontSize: 13,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                  leading: UserAvatar(uid: u.uid, fallbackName: u.name, radius: 18),
                   title: Text(u.name,
                       style: TextStyle(color: c.textPri, fontSize: 14)),
                   trailing: Icon(Icons.arrow_forward_ios_rounded,
@@ -444,8 +481,65 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
     );
     ctrl.dispose();
     if (selected != null && mounted) {
-      setState(() => _openDm = selected);
+      await _saveContact(selected);
+      if (mounted) setState(() => _openDm = selected);
     }
+  }
+
+  // Save a contact entry for both sides (mutual) so they appear in each
+  // other's contacts list and Online tab.
+  Future<void> _saveContact(UserRecord u) async {
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    if (myUid == null) return;
+    try {
+      final meDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(myUid)
+          .get();
+      String myName = FirebaseAuth.instance.currentUser?.displayName ?? '';
+      final String myEmail =
+          FirebaseAuth.instance.currentUser?.email ?? '';
+      if (meDoc.exists) {
+        final d = meDoc.data()!;
+        final first = d['firstName'] as String? ?? '';
+        final last  = d['lastName']  as String? ?? '';
+        if ('$first $last'.trim().isNotEmpty) myName = '$first $last'.trim();
+      }
+      final batch = FirebaseFirestore.instance.batch();
+      // Save other user into my contacts
+      batch.set(
+        FirebaseFirestore.instance
+            .collection('contacts')
+            .doc(myUid)
+            .collection('list')
+            .doc(u.uid),
+        {
+          'uid':      u.uid,
+          'name':     u.name,
+          'email':    u.email,
+          'customId': u.customId,
+          'addedAt':  FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+      // Save me into the other user's contacts (mutual)
+      batch.set(
+        FirebaseFirestore.instance
+            .collection('contacts')
+            .doc(u.uid)
+            .collection('list')
+            .doc(myUid),
+        {
+          'uid':      myUid,
+          'name':     myName,
+          'email':    myEmail,
+          'customId': '',
+          'addedAt':  FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+      await batch.commit();
+    } catch (_) {}
   }
 
   @override
@@ -458,7 +552,10 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
     }
     return Stack(
       children: [
-        _UserListView(onSelectUser: (u) => setState(() => _openDm = u)),
+        _UserListView(onSelectUser: (u) async {
+          await _saveContact(u);
+          if (mounted) setState(() => _openDm = u);
+        }),
         Positioned(
           right: 20,
           bottom: 20,
@@ -503,40 +600,43 @@ class _UserListView extends StatelessWidget {
     final c = AppColors.of(context);
     final myUid = FirebaseAuth.instance.currentUser?.uid;
 
+    if (myUid == null) {
+      return Center(child: Text('Non connecté', style: TextStyle(color: c.textSec)));
+    }
+
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('contacts')
+          .doc(myUid)
+          .collection('list')
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: kTeal));
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(
-              child: Text('No other users found.',
-                  style: TextStyle(color: c.textSec)));
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.person_add_rounded,
+                    color: c.textSec.withValues(alpha: 0.3), size: 48),
+                const SizedBox(height: 12),
+                Text('Aucun contact.', style: TextStyle(color: c.textSec)),
+                const SizedBox(height: 6),
+                Text("Utilisez le bouton + pour ajouter quelqu'un.",
+                    style: TextStyle(color: c.textSec, fontSize: 12)),
+              ],
+            ),
+          );
         }
 
-        final users = snapshot.data!.docs
-            .where((d) => d.id != myUid)
-            .map((d) {
+        final users = snapshot.data!.docs.map((d) {
           final data = d.data() as Map<String, dynamic>;
-          final first = data['firstName'] as String? ?? '';
-          final last  = data['lastName']  as String? ?? '';
-          final fsDisplayName = data['displayName'] as String? ?? '';
-          final email = data['email'] as String? ?? '';
-          final fullName = '$first $last'.trim().isNotEmpty
-              ? '$first $last'.trim()
-              : fsDisplayName;
-          final displayName = fullName.isNotEmpty
-              ? fullName
-              : email.contains('@')
-                  ? email.split('@').first
-                  : email.isNotEmpty ? email : d.id;
-          return UserRecord(
-            uid: d.id,
-            name: displayName,
-            customId: data['customId'] as String? ?? '',
-            email:    email,
-          );
+          final name     = data['name']     as String? ?? '';
+          final email    = data['email']    as String? ?? '';
+          final customId = data['customId'] as String? ?? '';
+          return UserRecord(uid: d.id, name: name, email: email, customId: customId);
         }).toList();
 
         return ListView.builder(
@@ -544,53 +644,63 @@ class _UserListView extends StatelessWidget {
           itemCount: users.length,
           itemBuilder: (_, i) {
             final user = users[i];
-            return StreamBuilder<Map<String, dynamic>>(
-              stream: PresenceService.instance.watchPresence(user.uid),
-              builder: (context, presSnap) {
-                final status =
-                    presSnap.data?['status'] as String? ?? 'offline';
-                return ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                  leading: Stack(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: kTeal.withValues(alpha: 0.2),
-                        child: Text(
-                          user.name.isEmpty
-                              ? '?'
-                              : user.name[0].toUpperCase(),
+            return StreamBuilder<DocumentSnapshot>(
+              // Live-stream the user's profile so name updates instantly
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .snapshots(),
+              builder: (context, userSnap) {
+                // Resolve the latest display name from the users doc
+                String liveName = user.name;
+                if (userSnap.hasData && userSnap.data!.exists) {
+                  final d = userSnap.data!.data() as Map<String, dynamic>;
+                  final first = d['firstName'] as String? ?? '';
+                  final last  = d['lastName']  as String? ?? '';
+                  final dn    = d['displayName'] as String? ?? '';
+                  final full  = '$first $last'.trim();
+                  liveName = full.isNotEmpty ? full : dn.isNotEmpty ? dn : user.name;
+                }
+                final liveUser = user.copyWith(name: liveName);
+                return StreamBuilder<Map<String, dynamic>>(
+                  stream: PresenceService.instance.watchPresence(user.uid),
+                  builder: (context, presSnap) {
+                    final status =
+                        presSnap.data?['status'] as String? ?? 'offline';
+                    return ListTile(
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                      leading: Stack(
+                        children: [
+                          UserAvatar(uid: liveUser.uid, fallbackName: liveUser.name),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Icon(
+                              _statusIcon(status),
+                              color: _statusColor(status),
+                              size: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                      title: Text(liveUser.name,
                           style: TextStyle(
-                              color: kTeal,
-                              fontWeight: FontWeight.bold),
-                        ),
+                              color: c.textPri, fontWeight: FontWeight.w600)),
+                      subtitle: Text(
+                        status == 'online'
+                            ? 'Online'
+                            : status == 'dnd'
+                                ? 'Do Not Disturb'
+                                : 'Offline',
+                        style: TextStyle(
+                            color: _statusColor(status),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500),
                       ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Icon(
-                          _statusIcon(status),
-                          color: _statusColor(status),
-                          size: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                  title: Text(user.name,
-                      style: TextStyle(
-                          color: c.textPri, fontWeight: FontWeight.w600)),
-                  subtitle: Text(
-                    status == 'online'
-                        ? 'Online'
-                        : status == 'dnd'
-                            ? 'Do Not Disturb'
-                            : 'Offline',
-                    style: TextStyle(
-                        color: _statusColor(status),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500),
-                  ),
-                  onTap: () => onSelectUser(user.copyWith(presenceStatus: status)),
+                      onTap: () => onSelectUser(liveUser.copyWith(presenceStatus: status)),
+                    );
+                  },
                 );
               },
             );
@@ -703,17 +813,7 @@ class _DmChatViewState extends State<_DmChatView> {
                     : status == 'dnd' ? kOrange : Colors.grey;
                 return Row(children: [
                   Stack(children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: kTeal.withValues(alpha: 0.2),
-                      child: Text(
-                        widget.peer.name.isEmpty
-                            ? '?'
-                            : widget.peer.name[0].toUpperCase(),
-                        style: const TextStyle(
-                            color: kTeal, fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                    UserAvatar(uid: widget.peer.uid, fallbackName: widget.peer.name, radius: 18),
                     Positioned(
                       right: 0, bottom: 0,
                       child: Icon(
@@ -837,166 +937,159 @@ class _OnlineUsersTab extends StatelessWidget {
     final colors = AppColors.of(context);
     final myUid = FirebaseAuth.instance.currentUser?.uid;
 
+    if (myUid == null) {
+      return Center(
+          child: Text('Non connecté', style: TextStyle(color: colors.textSec)));
+    }
+
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('contacts')
+          .doc(myUid)
+          .collection('list')
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(
               child: CircularProgressIndicator(color: kTeal));
         }
 
-        final docs = snapshot.data!.docs
-            .where((d) => d.id != myUid)
-            .toList();
+        final docs = snapshot.data!.docs;
+
+        if (docs.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 60),
+              child: Column(
+                children: [
+                  Icon(Icons.people_outline_rounded,
+                      color: colors.textSec.withValues(alpha: 0.3),
+                      size: 48),
+                  const SizedBox(height: 12),
+                  Text('Aucun contact ajouté',
+                      style: TextStyle(color: colors.textSec, fontSize: 14)),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Utilisez l\'onglet "Messages Directs"\npour ajouter des contacts.',
+                    style: TextStyle(color: colors.textSec, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
         return ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          itemCount: docs.isEmpty ? 1 : docs.length,
+          itemCount: docs.length,
           itemBuilder: (context, index) {
-            if (docs.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 60),
-                  child: Column(
-                    children: [
-                      Icon(Icons.people_outline_rounded,
-                          color: colors.textSec.withValues(alpha: 0.3),
-                          size: 48),
-                      const SizedBox(height: 12),
-                      Text('Aucun utilisateur trouvé',
-                          style: TextStyle(
-                              color: colors.textSec, fontSize: 14)),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            final doc = docs[index];
+            final doc  = docs[index];
             final data = doc.data() as Map<String, dynamic>;
-            final firstName = (data['firstName'] as String? ?? '').trim();
-            final lastName  = (data['lastName']  as String? ?? '').trim();
-            final fsDisplayName = (data['displayName'] as String? ?? '').trim();
-            final name = '$firstName $lastName'.trim().isNotEmpty
-                ? '$firstName $lastName'.trim()
-                : fsDisplayName;
-            final email = data['email'] as String? ?? '';
-            final displayName = name.isNotEmpty
-                ? name
+            final nameSnapshot  = (data['name']  as String? ?? '').trim();
+            final email = (data['email'] as String? ?? '').trim();
+            final fallbackName = nameSnapshot.isNotEmpty
+                ? nameSnapshot
                 : email.contains('@')
                     ? email.split('@').first
                     : email.isNotEmpty ? email : doc.id;
-            final avatarBase64 = data['avatarImageBase64'] as String?;
-            final avatarColorIdx = (data['avatarColorIdx'] as int?) ?? 0;
-            const avatarColors = [
-              Color(0xFF4ECDC4), Color(0xFFF5A623), Color(0xFFE74C3C),
-              Color(0xFF9B59B6), Color(0xFF3498DB), Color(0xFF2ECC71),
-              Color(0xFFFF6B8A), Color(0xFF1ABC9C),
-            ];
-            final avatarColor =
-                avatarColors[avatarColorIdx.clamp(0, avatarColors.length - 1)];
-            final initials = displayName.isEmpty
-                ? '?'
-                : displayName.split(' ').map((p) => p.isEmpty ? '' : p[0]).take(2).join().toUpperCase();
 
-            return StreamBuilder<Map<String, dynamic>?>(
-              stream: PresenceService.instance.watchPresence(doc.id),
-              builder: (context, presSnap) {
-                final presence = presSnap.data;
-                final status =
-                    (presence?['status'] as String?) ?? 'offline';
-                final isOnline = status == 'online';
-                final isDnd = status == 'dnd';
+            return StreamBuilder<DocumentSnapshot>(
+              // Live-stream the user's profile so name updates instantly
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(doc.id)
+                  .snapshots(),
+              builder: (context, userSnap) {
+                String displayName = fallbackName;
+                if (userSnap.hasData && userSnap.data!.exists) {
+                  final d = userSnap.data!.data() as Map<String, dynamic>;
+                  final first = d['firstName'] as String? ?? '';
+                  final last  = d['lastName']  as String? ?? '';
+                  final dn    = d['displayName'] as String? ?? '';
+                  final full  = '$first $last'.trim();
+                  displayName = full.isNotEmpty ? full : dn.isNotEmpty ? dn : fallbackName;
+                }
 
-                final statusColor = isOnline
-                    ? kTeal
-                    : isDnd
-                        ? kOrange
-                        : Colors.grey;
-                final statusLabel = isOnline
-                    ? 'En ligne'
-                    : isDnd
-                        ? 'Ne pas déranger'
-                        : 'Hors ligne';
+                return StreamBuilder<Map<String, dynamic>?>(
+                  stream: PresenceService.instance.watchPresence(doc.id),
+                  builder: (context, presSnap) {
+                    final status =
+                        (presSnap.data?['status'] as String?) ?? 'offline';
+                    final isOnline = status == 'online';
+                    final isDnd    = status == 'dnd';
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: colors.card,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isOnline
-                          ? kTeal.withValues(alpha: 0.3)
-                          : colors.divider.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      // Avatar
-                      Stack(
-                        alignment: Alignment.bottomRight,
-                        children: [
-                          CircleAvatar(
-                            radius: 22,
-                            backgroundColor: avatarColor,
-                            backgroundImage: avatarBase64 != null
-                                ? MemoryImage(_safeDecode(avatarBase64) ?? Uint8List(0))
-                                : null,
-                            child: avatarBase64 == null
-                                ? Text(initials,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13))
-                                : null,
-                          ),
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: colors.bg, width: 1.5),
-                            ),
-                          ),
-                        ],
+                    final statusColor = isOnline
+                        ? kTeal
+                        : isDnd
+                            ? kOrange
+                            : Colors.grey;
+                    final statusLabel = isOnline
+                        ? 'En ligne'
+                        : isDnd
+                            ? 'Ne pas déranger'
+                            : 'Hors ligne';
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: colors.card,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isOnline
+                              ? kTeal.withValues(alpha: 0.3)
+                              : colors.divider.withValues(alpha: 0.2),
+                        ),
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
+                      child: Row(
+                        children: [
+                          Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              UserAvatar(uid: doc.id, fallbackName: displayName, radius: 22),
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: statusColor,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: colors.bg, width: 1.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
                               displayName,
                               style: TextStyle(
                                   color: colors.textPri,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14),
                             ),
-
-                          ],
-                        ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: statusColor.withValues(alpha: 0.4)),
+                            ),
+                            child: Text(statusLabel,
+                                style: TextStyle(
+                                    color: statusColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600)),
+                          ),
+                        ],
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                              color: statusColor.withValues(alpha: 0.4)),
-                        ),
-                        child: Text(statusLabel,
-                            style: TextStyle(
-                                color: statusColor,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600)),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 );
               },
             );
@@ -1006,26 +1099,49 @@ class _OnlineUsersTab extends StatelessWidget {
     );
   }
 
-  static Uint8List? _safeDecode(String b64) {
-    try {
-      return base64Decode(b64);
-    } catch (_) {
-      return null;
-    }
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared Message Bubble
 // ─────────────────────────────────────────────────────────────────────────────
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends StatefulWidget {
   final ChatMessage msg;
   final bool isMine;
   const _MessageBubble({required this.msg, required this.isMine});
 
   @override
+  State<_MessageBubble> createState() => _MessageBubbleState();
+}
+
+class _MessageBubbleState extends State<_MessageBubble> {
+  // Static cache shared across all bubbles — one Firestore fetch per unique sender per session
+  static final Map<String, String> _nameCache = {};
+
+  Future<String> _resolveName() async {
+    if (widget.isMine) return widget.msg.senderName; // own name not shown
+    final uid = widget.msg.senderId;
+    if (_nameCache.containsKey(uid)) return _nameCache[uid]!;
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (doc.exists) {
+        final d = doc.data()!;
+        final first = d['firstName'] as String? ?? '';
+        final last  = d['lastName']  as String? ?? '';
+        final dn    = d['displayName'] as String? ?? '';
+        final full  = '$first $last'.trim();
+        final name  = full.isNotEmpty ? full : dn.isNotEmpty ? dn : widget.msg.senderName;
+        _nameCache[uid] = name;
+        return name;
+      }
+    } catch (_) {}
+    return widget.msg.senderName;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
+    final msg = widget.msg;
+    final isMine = widget.isMine;
     final time =
         '${msg.timestamp.hour.toString().padLeft(2, '0')}:${msg.timestamp.minute.toString().padLeft(2, '0')}';
 
@@ -1037,17 +1153,7 @@ class _MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMine) ...[
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: kTeal.withValues(alpha: 0.2),
-              child: Text(
-                msg.senderName.isEmpty
-                    ? '?'
-                    : msg.senderName[0].toUpperCase(),
-                style: const TextStyle(
-                    color: kTeal, fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-            ),
+            UserAvatar(uid: msg.senderId, fallbackName: msg.senderName, radius: 16),
             const SizedBox(width: 8),
           ],
           Flexible(
@@ -1068,19 +1174,25 @@ class _MessageBubble extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (!isMine) ...[
-                    Row(children: [
-                      Text(msg.senderName,
-                          style: TextStyle(
-                              color: kTeal,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold)),
-                      if (msg.senderEmail.isNotEmpty) ...[
-                        const SizedBox(width: 6),
-                        Text(msg.senderEmail,
-                            style: TextStyle(
-                                color: c.textSec, fontSize: 10)),
-                      ],
-                    ]),
+                    FutureBuilder<String>(
+                      future: _resolveName(),
+                      builder: (context, snap) {
+                        final liveName = snap.data ?? msg.senderName;
+                        return Row(children: [
+                          Text(liveName,
+                              style: TextStyle(
+                                  color: kTeal,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold)),
+                          if (msg.senderEmail.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Text(msg.senderEmail,
+                                style: TextStyle(
+                                    color: c.textSec, fontSize: 10)),
+                          ],
+                        ]);
+                      },
+                    ),
                     const SizedBox(height: 3),
                   ],
                   Text(msg.text,

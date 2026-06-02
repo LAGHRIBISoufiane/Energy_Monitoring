@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -8,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'models/energy_data.dart';
 import 'models/alert_entry.dart';
+import 'services/firestore_log_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/verify_email_screen.dart';
 import 'screens/dashboard_screen.dart';
@@ -19,7 +21,11 @@ import 'screens/comparison_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/maintenance_screen.dart';
+import 'screens/user_logs_screen.dart';
 import 'services/presence_service.dart';
+import 'services/auto_report_service.dart';
+import 'services/alert_notification_service.dart';
+import 'services/user_log_service.dart';
 import 'theme/app_theme.dart';
 import 'theme/app_colors.dart';
 import 'l10n/app_strings.dart';
@@ -161,6 +167,16 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
+  // Firestore real-time listeners
+  StreamSubscription? _assignedTasksSub;
+  StreamSubscription? _resolvedAlertsSub;
+  final Set<String> _seenAlertIds = {};
+  bool _alertsInitialLoadDone = false;
+  bool _maintenanceInitialLoadDone = false;
+
+  // Background RTDB → Firestore write pipeline (app-level, always alive)
+  final List<StreamSubscription> _bgSensorSubs = [];
+
   static const _screens = [
     DashboardScreen(),      // 0
     HistoricalScreen(),     // 1
@@ -171,13 +187,29 @@ class _MainScreenState extends State<MainScreen> {
     ChatScreen(),           // 6
     ProfileScreen(),        // 7
     MaintenanceScreen(),    // 8
+    UserLogsScreen(),       // 9
   ];
 
   @override
   void initState() {
     super.initState();
     PresenceService.instance.initialize();
+    AutoReportService.instance.initialize();
     _loadUserRole();
+    // Start real-time listeners and show missed alerts after first frame.
+    _startBackgroundSensorSync();
+    _logLogin();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _startMaintenanceListener();
+      _startResolvedAlertsListener();
+      AlertNotificationService.instance.checkMissedOnLogin(
+        context,
+        onViewAlerts: () {
+          if (mounted) setState(() => _selectedIndex = 3);
+        },
+      );
+    });
   }
 
   Future<void> _loadUserRole() async {
@@ -189,21 +221,199 @@ class _MainScreenState extends State<MainScreen> {
       final data = doc.data();
 
       // Always ensure soufianelaghri1@gmail.com has the admin role.
+      // Set roleNotifier FIRST so the UI is correct even if the Firestore
+      // write is blocked by rules (bootstrapping chicken-and-egg).
       if (user.email?.toLowerCase() == 'soufianelaghri1@gmail.com') {
-        await ref.set({'role': 'admin', 'email': user.email},
-            SetOptions(merge: true));
         roleNotifier.value = 'admin';
+        try {
+          await ref.set({'role': 'admin', 'email': user.email},
+              SetOptions(merge: true));
+        } catch (_) {} // OK if blocked — client role already set
         return;
       }
 
-      roleNotifier.value = data?['role'] as String? ?? 'viewer';
+      final existingRole = data?['role'] as String?;
+      roleNotifier.value = existingRole ?? 'viewer';
+      // Always persist email so broadcast notifications can reach this user.
+      // Also writes 'viewer' role if not yet set — required for security rules.
+      try {
+        await ref.set(
+          {
+            if (existingRole == null) 'role': 'viewer',
+            if ((user.email ?? '').isNotEmpty) 'email': user.email,
+          },
+          SetOptions(merge: true),
+        );
+      } catch (_) {} // OK if blocked — client role already set
     } catch (_) {}
+  }
+
+  void _logLogin() {
+    // Defer so roleNotifier is already set
+    Future.microtask(() =>
+      UserLogService.instance.log(action: 'login', detail: 'Tableau de bord ouvert'));
+  }
+
+  // Subscribes to RTDB current_metrics for all 3 units at the app level.
+  // This ensures Firestore writes happen regardless of which tab is active.
+  void _startBackgroundSensorSync() {
+    for (final sub in _bgSensorSubs) {
+      sub.cancel();
+    }
+    _bgSensorSubs.clear();
+    const units = ['KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
+    for (final unitId in units) {
+      final sub = FirebaseDatabase.instance
+          .ref('$unitId/current_metrics')
+          .onValue
+          .listen((event) {
+        if (event.snapshot.value == null) return;
+        try {
+          final data = EnergyData.fromJson(
+            event.snapshot.value as Map<dynamic, dynamic>,
+            unitId,
+          );
+          FirestoreLogService.instance.logReading(data);
+        } catch (_) {}
+      });
+      _bgSensorSubs.add(sub);
+    }
   }
 
   @override
   void dispose() {
+    for (final sub in _bgSensorSubs) {
+      sub.cancel();
+    }
+    _assignedTasksSub?.cancel();
+    _resolvedAlertsSub?.cancel();
     PresenceService.instance.dispose();
+    AutoReportService.instance.dispose();
     super.dispose();
+  }
+
+  // ── Real-time: maintenance tasks assigned to current user ─────────────────
+  void _startMaintenanceListener() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    _assignedTasksSub = FirebaseFirestore.instance
+        .collection('maintenance_logs')
+        .where('assignedToUid', isEqualTo: uid)
+        .where('resolved', isEqualTo: false)
+        .snapshots()
+        .listen(_onAssignedTasksSnapshot);
+  }
+
+  void _onAssignedTasksSnapshot(QuerySnapshot snap) {
+    final isInitialLoad = !_maintenanceInitialLoadDone;
+    _maintenanceInitialLoadDone = true;
+    final existing = alertLogNotifier.value.map((e) => e.title).toSet();
+    final newEntries = <AlertEntry>[];
+    for (final change in snap.docChanges) {
+      if (change.type != DocumentChangeType.added) continue;
+      final d = change.doc.data() as Map<String, dynamic>;
+      final docId = change.doc.id;
+      final title = '${AppStrings.t('maintenance_assigned')}|$docId';
+      if (existing.contains(title)) continue;
+      final type = d['type'] as String? ?? 'inspection';
+      final desc = d['description'] as String? ?? '';
+      final color = type == 'repair'
+          ? const Color(0xFFE74C3C)
+          : type == 'calibration' ? kOrange : kTeal;
+      newEntries.add(AlertEntry(
+        title: title,
+        detail: desc.isNotEmpty ? desc : AppStrings.t(type),
+        color: color,
+        time: (d['timestamp'] as Timestamp?)?.toDate().toLocal() ?? DateTime.now(),
+        unitId: d['unitId'] as String? ?? '',
+      ));
+    }
+    if (newEntries.isNotEmpty) {
+      alertLogNotifier.value = [...alertLogNotifier.value, ...newEntries];
+      // Show a snackbar only for NEW assignments (not the initial load at startup)
+      if (!isInitialLoad && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Row(children: [
+            const Icon(Icons.build_circle, color: Colors.white, size: 16),
+            const SizedBox(width: 8),
+            Text(AppStrings.t('maintenance_assigned')),
+          ]),
+          backgroundColor: kTeal,
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: AppStrings.t('view'),
+            textColor: Colors.white,
+            onPressed: () {
+              if (mounted) setState(() => _selectedIndex = 8);
+            },
+          ),
+        ));
+      }
+    }
+  }
+
+  // ── Real-time: maintenance resolved alerts broadcast to all users ─────────
+  void _startResolvedAlertsListener() {
+    _resolvedAlertsSub = FirebaseFirestore.instance
+        .collection('alerts')
+        .where('type', isEqualTo: 'maintenance_resolved')
+        .orderBy('timestamp', descending: true)
+        .limit(50)
+        .snapshots()
+        .listen(_onResolvedAlertsSnapshot);
+  }
+
+  void _onResolvedAlertsSnapshot(QuerySnapshot snap) {
+    if (!_alertsInitialLoadDone) {
+      // Mark all current docs as seen so we don't re-show historical resolutions.
+      for (final doc in snap.docs) {
+        _seenAlertIds.add(doc.id);
+      }
+      _alertsInitialLoadDone = true;
+      return;
+    }
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    for (final change in snap.docChanges) {
+      if (change.type != DocumentChangeType.added) continue;
+      if (_seenAlertIds.contains(change.doc.id)) continue;
+      _seenAlertIds.add(change.doc.id);
+      final d = change.doc.data() as Map<String, dynamic>;
+      // Skip if this user was the one who resolved it (they already see it locally)
+      final resolvedByUid = d['resolvedByUid'] as String? ?? '';
+      if (resolvedByUid == uid) continue;
+      final title = d['title'] as String? ?? '';
+      final detail = d['detail'] as String? ?? '';
+      final unitId = d['unitId'] as String? ?? '';
+      if (title.isEmpty) continue;
+      alertLogNotifier.value = [
+        ...alertLogNotifier.value,
+        AlertEntry(
+          title: title,
+          detail: detail,
+          color: const Color(0xFF2ECC71),
+          time: DateTime.now(),
+          unitId: unitId,
+        ),
+      ];
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Row(children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 16),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title, overflow: TextOverflow.ellipsis)),
+          ]),
+          backgroundColor: const Color(0xFF2ECC71),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: AppStrings.t('view'),
+            textColor: Colors.white,
+            onPressed: () {
+              if (mounted) setState(() => _selectedIndex = 8);
+            },
+          ),
+        ));
+      }
+    }
   }
 
   @override
@@ -459,6 +669,19 @@ class _DarkSidebar extends StatelessWidget {
                     onTap: () => onSelect(8),
                   ),
           ),
+          ValueListenableBuilder<String>(
+            valueListenable: roleNotifier,
+            builder: (context, role, _) =>
+                (role == 'admin' || role == 'moderator')
+                ? _SidebarItem(
+                    icon: Icons.manage_history_outlined,
+                    activeIcon: Icons.manage_history_rounded,
+                    label: AppStrings.t('user_logs'),
+                    isActive: selectedIndex == 9,
+                    onTap: () => onSelect(9),
+                  )
+                : const SizedBox.shrink(),
+          ),
           const Spacer(),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -471,7 +694,10 @@ class _DarkSidebar extends StatelessWidget {
             label: AppStrings.t('logout'),
             isActive: false,
             isDestructive: true,
-            onTap: () async => await FirebaseAuth.instance.signOut(),
+            onTap: () async {
+              await UserLogService.instance.log(action: 'logout', detail: 'Déconnexion');
+              await FirebaseAuth.instance.signOut();
+            },
           ),
           const SizedBox(height: 16),
         ],

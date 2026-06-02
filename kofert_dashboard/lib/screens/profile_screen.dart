@@ -9,7 +9,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/app_colors.dart';
 import '../main.dart' show kTeal, kOrange, roleNotifier;
 import '../services/presence_service.dart';
+import '../services/user_log_service.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/user_avatar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,6 +22,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   AppColors get _c => AppColors.of(context);
+  bool get _isMobile => MediaQuery.sizeOf(context).width < 700;
 
   final _displayNameCtrl = TextEditingController();
   final _customIdCtrl = TextEditingController();
@@ -109,19 +112,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Presence
         _presenceStatus = d['presenceStatus'] as String? ?? 'online';
         // Always enforce admin role for the designated admin account.
+        // Set _role and roleNotifier FIRST so the UI is correct even if the
+        // Firestore write is blocked (bootstrapping chicken-and-egg).
         if (user.email?.toLowerCase() == 'soufianelaghri1@gmail.com') {
           _role = 'admin';
+          roleNotifier.value = 'admin';
           if ((d['role'] as String?) != 'admin') {
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(user.uid)
-                .set({'role': 'admin'}, SetOptions(merge: true));
+            try {
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .set({'role': 'admin'}, SetOptions(merge: true));
+            } catch (_) {} // OK if blocked — client role already set
           }
         } else {
           _role = d['role'] as String? ?? 'viewer';
+          // Keep roleNotifier in sync with fresh data from profile load
+          roleNotifier.value = _role;
         }
-        // Keep roleNotifier in sync with fresh data from profile load
-        roleNotifier.value = _role;
 
         _displayNameCtrl.text =
             '${_firstName!} ${_lastName!}'.trim().isEmpty
@@ -133,10 +141,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _customId = _generateId();
         _customIdCtrl.text = _customId!;
         // Auto-persist so others can find this user by ID immediately
+        // Default role to 'viewer' so Firestore security rules work correctly
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
-            .set({'customId': _customId, 'email': user.email}, SetOptions(merge: true));
+            .set({'customId': _customId, 'email': user.email, 'role': 'viewer'}, SetOptions(merge: true));
       }
     } catch (_) {
       _displayNameCtrl.text = user.displayName ?? '';
@@ -163,16 +172,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? ['moderator', 'operator', 'observer', 'viewer']
         : ['admin', 'moderator', 'operator', 'observer', 'viewer'];
 
-    final roleMap = <String, String>{
+    final originalRoles = <String, String>{
       for (final d in docs) d.id: (d.data()['role'] as String?) ?? 'viewer',
     };
+    final roleMap = Map<String, String>.from(originalRoles);
     await showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
           title: Text(AppStrings.t('manage_users')),
           content: SizedBox(
-            width: 480,
+            width: double.maxFinite,
             child: ListView(
               shrinkWrap: true,
               children: docs.map((d) {
@@ -184,39 +194,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Moderator cannot change the role of an admin
                 final canEdit = !isCurrentUser &&
                     !(isModerator && targetRole == 'admin');
-                return ListTile(
-                  title: Text(name.isEmpty ? email : name),
-                  subtitle: Column(
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(email, style: const TextStyle(fontSize: 12)),
-                      Text('UID: ${d.id}',
-                          style: const TextStyle(
-                              fontSize: 10, color: Colors.grey)),
+                      Row(
+                        children: [
+                          UserAvatar(uid: d.id, fallbackName: name.isEmpty ? email : name, radius: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name.isEmpty ? email : name,
+                                  style: TextStyle(
+                                      color: _c.textPri, fontWeight: FontWeight.w600, fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(email,
+                                    style: TextStyle(color: _c.textSec, fontSize: 12),
+                                    overflow: TextOverflow.ellipsis),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.shield_outlined,
+                              size: 14, color: _roleColor(targetRole)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: canEdit
+                                ? DropdownButtonHideUnderline(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: _roleColor(targetRole)
+                                            .withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                            color: _roleColor(targetRole)
+                                                .withValues(alpha: 0.35)),
+                                      ),
+                                      child: DropdownButton<String>(
+                                        value: assignableRoles.contains(targetRole)
+                                            ? targetRole
+                                            : assignableRoles.last,
+                                        isDense: true,
+                                        isExpanded: true,
+                                        dropdownColor: _c.card,
+                                        style: TextStyle(
+                                            color: _roleColor(targetRole),
+                                            fontSize: 12),
+                                        icon: Icon(Icons.expand_more,
+                                            color: _roleColor(targetRole),
+                                            size: 16),
+                                        items: assignableRoles
+                                            .map((r) => DropdownMenuItem(
+                                                  value: r,
+                                                  child: Text(AppStrings.t('role_$r'),
+                                                      style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: _roleColor(r))),
+                                                ))
+                                            .toList(),
+                                        onChanged: (newRole) {
+                                          if (newRole == null) return;
+                                          setS(() => roleMap[d.id] = newRole);
+                                        },
+                                      ),
+                                    ),
+                                  )
+                                : Text(
+                                    AppStrings.t('role_$targetRole'),
+                                    style: TextStyle(
+                                        color: _roleColor(targetRole),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12),
+                                  ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 16),
                     ],
                   ),
-                  isThreeLine: true,
-                  trailing: canEdit
-                      ? DropdownButton<String>(
-                          value: assignableRoles.contains(targetRole)
-                              ? targetRole
-                              : assignableRoles.last,
-                          items: assignableRoles.map((r) => DropdownMenuItem(
-                            value: r,
-                            child: Text(AppStrings.t('role_$r')),
-                          )).toList(),
-                          onChanged: (newRole) {
-                            if (newRole == null) return;
-                            setS(() => roleMap[d.id] = newRole);
-                          },
-                        )
-                      : Text(
-                          AppStrings.t('role_$targetRole'),
-                          style: TextStyle(
-                              color: _roleColor(targetRole),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12),
-                        ),
                 );
               }).toList(),
             ),
@@ -229,15 +295,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ElevatedButton(
               onPressed: () async {
                 final navigator = Navigator.of(ctx);
-                final batch = FirebaseFirestore.instance.batch();
-                for (final entry in roleMap.entries) {
-                  batch.update(
-                    FirebaseFirestore.instance.collection('users').doc(entry.key),
-                    {'role': entry.value},
-                  );
+                // Only write roles that actually changed to avoid
+                // Firestore permission errors (e.g. moderator re-writing
+                // an admin's existing role).
+                final changed = roleMap.entries
+                    .where((e) => e.value != originalRoles[e.key])
+                    .toList();
+                if (changed.isEmpty) {
+                  navigator.pop();
+                  return;
                 }
-                await batch.commit();
-                if (mounted) navigator.pop();
+                try {
+                  final batch = FirebaseFirestore.instance.batch();
+                  for (final entry in changed) {
+                    batch.update(
+                      FirebaseFirestore.instance.collection('users').doc(entry.key),
+                      {'role': entry.value},
+                    );
+                  }
+                  await batch.commit();
+                  // Log each role change
+                  for (final entry in changed) {
+                    final targetData = docs.firstWhere((d) => d.id == entry.key).data();
+                    final targetEmail = targetData['email'] as String? ?? entry.key;
+                    final oldRole = originalRoles[entry.key] ?? 'viewer';
+                    UserLogService.instance.log(
+                      action: 'role_change',
+                      detail: '$targetEmail: ${AppStrings.t('role_$oldRole')} → ${AppStrings.t('role_${entry.value}')}',
+                    );
+                  }
+                  if (mounted) navigator.pop();
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erreur: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               },
               child: const Text('Sauvegarder'),
             ),
@@ -387,11 +484,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
         if (accept == true) {
+          final oldRole = _role;
           await FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
               .set({'role': role}, SetOptions(merge: true));
           await doc.reference.update({'status': 'accepted'});
+          UserLogService.instance.log(
+            action: 'role_change',
+            detail: '${user.email}: ${AppStrings.t('role_$oldRole')} → ${AppStrings.t('role_$role')} (invitation)',
+          );
           if (mounted) setState(() => _role = role);
           _snack('Rôle mis à jour: ${AppStrings.t('role_$role')}');
         } else {
@@ -483,6 +585,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       await user.updateDisplayName('$newFirst $newLast'.trim());
       _customId = newId;
+      UserAvatar.invalidateCache(user.uid);
 
       _snack('Profile saved successfully');
     } catch (e) {
@@ -561,25 +664,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = _isMobile;
     return Scaffold(
       backgroundColor: _c.bg,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: kTeal))
           : SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(32, 32, 32, 40),
+              padding: EdgeInsets.fromLTRB(
+                  isMobile ? 16 : 32, isMobile ? 16 : 32, isMobile ? 16 : 32, 40),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(),
-                  const SizedBox(height: 32),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 1, child: _buildAvatarCard()),
-                      const SizedBox(width: 24),
-                      Expanded(flex: 2, child: _buildInfoCard()),
-                    ],
-                  ),
+                  SizedBox(height: isMobile ? 16 : 32),
+                  if (isMobile) ...[  
+                    _buildAvatarCard(),
+                    const SizedBox(height: 16),
+                    _buildInfoCard(),
+                  ] else
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 1, child: _buildAvatarCard()),
+                        const SizedBox(width: 24),
+                        Expanded(flex: 2, child: _buildInfoCard()),
+                      ],
+                    ),
                   const SizedBox(height: 24),
                   _buildPasswordCard(),
                 ],
@@ -588,30 +698,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildHeader() => Row(
+  Widget _buildHeader() {
+    final isMobile = _isMobile;
+    final badges = <Widget>[
+      _presenceBadge('online',  Icons.circle,               kTeal,       'En ligne',        showLabel: !isMobile),
+      const SizedBox(width: 8),
+      _presenceBadge('dnd',     Icons.remove_circle_outline, kOrange,    'Ne pas déranger', showLabel: !isMobile),
+      const SizedBox(width: 8),
+      _presenceBadge('offline', Icons.circle_outlined,       Colors.grey, 'Hors ligne',      showLabel: !isMobile),
+    ];
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Mon Profil',
               style: TextStyle(
-                  color: _c.textPri,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22)),
-          const Spacer(),
-          _presenceBadge('online',  Icons.circle, kTeal,                    'En ligne'),
-          const SizedBox(width: 8),
-          _presenceBadge('dnd',     Icons.remove_circle_outline, kOrange,   'Ne pas déranger'),
-          const SizedBox(width: 8),
-          _presenceBadge('offline', Icons.circle_outlined,       Colors.grey,'Hors ligne'),
+                  color: _c.textPri, fontWeight: FontWeight.bold, fontSize: 20)),
+          const SizedBox(height: 10),
+          Row(mainAxisSize: MainAxisSize.min, children: badges),
         ],
       );
+    }
+    return Row(
+      children: [
+        Text('Mon Profil',
+            style: TextStyle(
+                color: _c.textPri, fontWeight: FontWeight.bold, fontSize: 22)),
+        const Spacer(),
+        ...badges,
+      ],
+    );
+  }
 
   Widget _presenceBadge(
-      String status, IconData icon, Color color, String label) {
+      String status, IconData icon, Color color, String label,
+      {bool showLabel = true}) {
     final active = _presenceStatus == status;
     return GestureDetector(
       onTap: () => _changePresence(status),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: showLabel ? 14 : 8, vertical: 8),
         decoration: BoxDecoration(
           color: active ? color.withValues(alpha: 0.18) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
@@ -620,13 +747,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, color: active ? color : _c.textSec, size: 14),
-          const SizedBox(width: 6),
-          Text(label,
-              style: TextStyle(
-                  color: active ? color : _c.textSec,
-                  fontSize: 12,
-                  fontWeight:
-                      active ? FontWeight.bold : FontWeight.normal)),
+          if (showLabel) ...[  
+            const SizedBox(width: 6),
+            Text(label,
+                style: TextStyle(
+                    color: active ? color : _c.textSec,
+                    fontSize: 12,
+                    fontWeight:
+                        active ? FontWeight.bold : FontWeight.normal)),
+          ],
         ]),
       ),
     );
@@ -859,7 +988,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // Role badge
           _fieldLabel(AppStrings.t('your_role')),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -878,7 +1010,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               if (_role == 'admin' || _role == 'moderator') ...[
-                const SizedBox(width: 12),
                 OutlinedButton.icon(
                   onPressed: _showManageUsersDialog,
                   icon: const Icon(Icons.manage_accounts_outlined, size: 16),
@@ -890,7 +1021,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(20)),
                   ),
                 ),
-                const SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: _showInviteUserDialog,
                   icon: const Icon(Icons.person_add_outlined, size: 16),
@@ -934,6 +1064,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildPasswordCard() {
+    final isMobile = _isMobile;
+    final leftCol = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _fieldLabel('Current Password'),
+        _pwField(_currentPwCtrl, _currentPwVisible,
+            () => setState(() => _currentPwVisible = !_currentPwVisible)),
+        const SizedBox(height: 16),
+        _fieldLabel('New Password'),
+        _pwField(_newPwCtrl, _pwVisible,
+            () => setState(() => _pwVisible = !_pwVisible)),
+        const SizedBox(height: 8),
+        _buildPwRules(_newPwCtrl.text),
+      ],
+    );
+    final rightCol = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!isMobile) const SizedBox(height: 40),
+        _fieldLabel('Confirm New Password'),
+        _pwField(_confirmPwCtrl, _confirmVisible,
+            () => setState(() => _confirmVisible = !_confirmVisible)),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton.icon(
+            onPressed: _isSaving ? null : _changePassword,
+            icon: const Icon(Icons.lock_reset_outlined, size: 18),
+            label: const Text('Update Password',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kOrange,
+              foregroundColor: Colors.black87,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
+      ],
+    );
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -943,51 +1114,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           _sectionTitle('Change Password'),
           const SizedBox(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(children: [
-                  _fieldLabel('Current Password'),
-                  _pwField(_currentPwCtrl, _currentPwVisible,
-                      () => setState(() => _currentPwVisible = !_currentPwVisible)),
-                  const SizedBox(height: 16),
-                  _fieldLabel('New Password'),
-                  _pwField(_newPwCtrl, _pwVisible,
-                      () => setState(() => _pwVisible = !_pwVisible)),
-                  const SizedBox(height: 8),
-                  _buildPwRules(_newPwCtrl.text),
-                ]),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: Column(children: [
-                  const SizedBox(height: 40),
-                  _fieldLabel('Confirm New Password'),
-                  _pwField(_confirmPwCtrl, _confirmVisible,
-                      () => setState(
-                          () => _confirmVisible = !_confirmVisible)),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: _isSaving ? null : _changePassword,
-                      icon: const Icon(Icons.lock_reset_outlined, size: 18),
-                      label: const Text('Update Password',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kOrange,
-                        foregroundColor: Colors.black87,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                ]),
-              ),
-            ],
-          ),
+          if (isMobile) ...[  
+            leftCol,
+            const SizedBox(height: 16),
+            rightCol,
+          ] else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: leftCol),
+                const SizedBox(width: 24),
+                Expanded(child: rightCol),
+              ],
+            ),
         ],
       ),
     );

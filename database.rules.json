@@ -1,0 +1,31 @@
+{
+  "rules": {
+    ".read": "auth != null",
+
+    "KOFERT_Unit_1": {
+      "current_metrics": {
+        ".write": true
+      }
+    },
+
+    "KOFERT_Unit_2": {
+      "current_metrics": {
+        ".write": true
+      },
+      "fan_control": {
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "KOFERT_Unit_3": {
+      "current_metrics": {
+        ".write": true,
+        "pump_status": {
+          ".read": true,
+          ".write": true
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,130 @@
+# Energy Monitoring System Queries
+
+# Anyone should be able to list all energy units
+query ListEnergyUnits @auth(level: PUBLIC, insecureReason: "Anyone can list monitoring units.") {
+  energyUnits {
+    id
+    unitName
+    location
+    isActive
+    createdAt
+  }
+}
+
+# Get all metrics for a unit
+query ListEnergyMetrics($unitId: String!) @auth(level: PUBLIC, insecureReason: "Anyone can access historical energy data.") {
+  energyMetrics(
+    where: { unit: { id: { eq: $unitId } } }
+    orderBy: [{ recordedAt: DESC }]
+    limit: 100
+  ) {
+    id
+    timestamp
+    voltage
+    current
+    power
+    energy
+    powerFactor
+    frequency
+    recordedAt
+  }
+}
+
+# Get latest energy metrics for a unit
+query GetLatestEnergyMetrics($unitId: String!) @auth(level: PUBLIC, insecureReason: "Anyone can get latest energy metrics.") {
+  energyMetrics(
+    where: { unit: { id: { eq: $unitId } } }
+    orderBy: [{ recordedAt: DESC }]
+    limit: 1
+  ) {
+    id
+    timestamp
+    voltage
+    current
+    power
+    energy
+    powerFactor
+    frequency
+  }
+}
+
+# Get active alerts for a unit
+query GetActiveAlerts @auth(level: PUBLIC, insecureReason: "Anyone can view active alerts.") {
+  energyAlerts(
+    where: { 
+      _and: [
+        { isResolved: { eq: false } }
+      ]
+    }
+    orderBy: [{ createdAt: DESC }]
+  ) {
+    id
+    alertType
+    severity
+    message
+    createdAt
+  }
+}
+
+# Get full alert history for a unit (resolved + active), newest first.
+# Used by AlertHistoryScreen to show persisted alerts from Firebase.
+query GetAlertHistory($unitId: String!, $limit: Int) @auth(level: PUBLIC, insecureReason: "Anyone can view alert history.") {
+  energyAlerts(
+    where: { unit: { id: { eq: $unitId } } }
+    orderBy: [{ createdAt: DESC }]
+    limit: $limit
+  ) {
+    id
+    alertType
+    severity
+    message
+    isResolved
+    createdAt
+    resolvedAt
+    resolvedByUid
+  }
+}
+
+# Get metrics for a unit within a date range, ordered chronologically.
+# Used by HistoricalScreen for date-filtered chart and table views.
+query GetMetricsByDateRange(
+  $unitId: String!,
+  $startDate: Timestamp!,
+  $endDate: Timestamp!
+) @auth(level: PUBLIC, insecureReason: "Anyone can access historical energy data.") {
+  energyMetrics(
+    where: {
+      _and: [
+        { unit: { id: { eq: $unitId } } },
+        { recordedAt: { ge: $startDate } },
+        { recordedAt: { le: $endDate } }
+      ]
+    }
+    orderBy: [{ recordedAt: ASC }]
+  ) {
+    id
+    timestamp
+    voltage
+    current
+    power
+    energy
+    powerFactor
+    frequency
+    fanSpeed
+    waterLevel
+    recordedAt
+  }
+}
+
+# Get a single energy unit by its ID.
+# Used by DashboardScreen and SummaryScreen to fetch unit metadata.
+query GetEnergyUnit($unitId: String!) @auth(level: PUBLIC, insecureReason: "Anyone can view unit details.") {
+  energyUnit(id: $unitId) {
+    id
+    unitName
+    location
+    deviceType
+    isActive
+    createdAt
+  }
+}

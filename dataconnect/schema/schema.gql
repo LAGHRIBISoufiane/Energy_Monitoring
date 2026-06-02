@@ -1,0 +1,55 @@
+# Schema for OCP - KOFERT Energy Monitoring System
+
+# EnergyUnit represents a monitoring unit (e.g., KOFERT_Unit_1)
+type EnergyUnit @table {
+  id: String!
+  unitName: String! @col(dataType: "varchar(100)")
+  location: String! @col(dataType: "varchar(255)")
+  # AC_PZEM | DC_FAN | DC_PUMP
+  deviceType: String! @col(dataType: "varchar(20)")
+  isActive: Boolean! @default(expr: "true")
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+# EnergyMetric represents a single measurement point
+type EnergyMetric @table {
+  id: UUID! @default(expr: "uuidV4()")
+  unit: EnergyUnit!
+  timestamp: Timestamp! @default(expr: "request.time")
+  voltage: Float!          # Voltage in volts (V)
+  current: Float!          # Current in amperes (A)
+  powerFactor: Float!      # Power factor (0.0–1.0); always 1.0 for DC units
+
+  # AC-only fields (KOFERT_Unit_1 / PZEM-004T) — null for DC units
+  power: Float             # Active power in watts (W)
+  energy: Float            # Cumulative energy in mWh
+  frequency: Float         # Grid frequency in Hz
+
+  # Unit 2 — Fan speed reported by the ESP32 potentiometer (0–100 %)
+  fanSpeed: Int
+
+  # Unit 3 — Water reservoir level from analog sensor (0–100 %)
+  waterLevel: Int
+  # Unit 3 — Pump relay state written by the dashboard
+  pumpStatus: String @col(dataType: "varchar(5)")  # ON | OFF
+
+  recordedAt: Timestamp!
+}
+
+# EnergyAlert represents system alerts and anomalies
+type EnergyAlert @table(name: "EnergyAlerts") {
+  id: UUID! @default(expr: "uuidV4()")
+  unit: EnergyUnit!
+  # Nullable: status-only alerts (e.g. "OK") have no associated metric row
+  metric: EnergyMetric
+  # LOW_POWER_FACTOR | OVERVOLTAGE | UNDERVOLTAGE | OVERCURRENT | LOW_WATER_LEVEL
+  alertType: String! @col(dataType: "varchar(50)")
+  # CRITICAL | WARNING | INFO
+  severity: String! @col(dataType: "varchar(20)")
+  message: String! @col(dataType: "varchar(255)")
+  isResolved: Boolean! @default(expr: "false")
+  createdAt: Timestamp! @default(expr: "request.time")
+  resolvedAt: Timestamp
+  resolvedByUid: String
+}

@@ -9,6 +9,8 @@ ExampleConnector.instance.ListEnergyUnits().execute();
 ExampleConnector.instance.ListEnergyMetrics(listEnergyMetricsVariables).execute();
 ExampleConnector.instance.GetLatestEnergyMetrics(getLatestEnergyMetricsVariables).execute();
 ExampleConnector.instance.GetActiveAlerts().execute();
+ExampleConnector.instance.GetAlertHistory(getAlertHistoryVariables).execute();
+ExampleConnector.instance.GetMetricsByDateRange(getMetricsByDateRangeVariables).execute();
 
 ```
 
@@ -21,8 +23,8 @@ Optional fields can be discovered based on classes that have `Optional` object t
 This is an example of a mutation with an optional field:
 
 ```dart
-await ExampleConnector.instance.RecordEnergyMetric({ ... })
-.power(...)
+await ExampleConnector.instance.GetAlertHistory({ ... })
+.limit(...)
 .execute();
 ```
 

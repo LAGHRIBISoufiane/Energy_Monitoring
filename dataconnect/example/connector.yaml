@@ -1,0 +1,71 @@
+connectorId: example
+generate:
+  dartSdk:
+    - outputDir: ..\..\kofert_dashboard\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\packages\integration_test\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\packages\fuchsia_remote_debug_protocol\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\packages\flutter_web_plugins\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\packages\flutter_tools\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\packages\flutter_test\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\packages\flutter_localizations\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\packages\flutter_goldens\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\packages\flutter_driver\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\packages\flutter\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\examples\texture\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\examples\splash\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\examples\platform_view\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\examples\platform_channel_swift\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\examples\platform_channel\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\examples\multiple_windows\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\examples\layers\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\examples\image_list\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\examples\hello_world\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\examples\flutter_view\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\examples\api\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\dev\tracing_tests\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\dev\tools\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\dev\packages_autoroller\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\dev\snippets\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\dev\missing_dependency_tests\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\dev\manual_tests\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\dev\forbidden_from_release_tests\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\dev\devicelab\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\dev\customer_testing\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\dev\bots\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\dev\automated_tests\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart
+    - outputDir: ..\..\flutter\dev\a11y_assessments\lib\dataconnect_generated
+      package: dataconnect_generated/generated.dart

@@ -120,24 +120,27 @@ class EnergyPredictor {
       final futureMidIndex = sorted.length + stepsIn24h / 2;
       final predictedAvgPower =
           math.max(0, regression['slope']! * futureMidIndex + regression['intercept']!);
-      dailyEnergyMwh = predictedAvgPower * 24 / 1000;
+      // W × 24 h × 1000 mWh/Wh = mWh
+      dailyEnergyMwh = predictedAvgPower * 24 * 1000;
       confidence = math.min(1.0, sorted.length / 200.0);
     } else {
-      dailyEnergyMwh = avgPower * 24 / 1000;
+      dailyEnergyMwh = avgPower * 24 * 1000;
       confidence = 0.3;
     }
 
-    final nextDayCost = dailyEnergyMwh * tariffRate;
+    // mWh ÷ 1 000 000 × MAD/kWh = MAD
+    final nextDayCost = dailyEnergyMwh * tariffRate / 1000000.0;
 
     // Month-to-date cost estimate.
     final totalHoursCovered =
         (sorted.length * _assumedIntervalSeconds) / 3600.0;
     final avgDailyCoverageHours = totalHoursCovered.clamp(0, 24);
     final mtdDays = now.day.toDouble();
+    // W × h × 1000 mWh/Wh = mWh
     final monthToDateEnergy =
-        avgPower * avgDailyCoverageHours * mtdDays / 1000;
-    final monthToDateCost = monthToDateEnergy * tariffRate;
-    final monthEndCost = monthToDateCost + (dailyEnergyMwh * daysRemaining * tariffRate);
+        avgPower * avgDailyCoverageHours * mtdDays * 1000;
+    final monthToDateCost = monthToDateEnergy * tariffRate / 1000000.0;
+    final monthEndCost = monthToDateCost + (dailyEnergyMwh * daysRemaining * tariffRate / 1000000.0);
 
     return {
       'nextDayEnergy': dailyEnergyMwh,

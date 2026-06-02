@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 // ignore: avoid_web_libraries_in_flutter, deprecated_member_use
@@ -30,10 +32,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _selectedUnit = 'KOFERT_Unit_1';
   final List<String> _availableUnits = ['KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
 
+  // ── Auto-report settings ──────────────────────────────────────────────────
+  bool _autoReportEnabled = false;
+  String _autoReportFrequency = 'daily';
+
   @override
   void initState() {
     super.initState();
     _loadSettings();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -51,6 +62,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _themeMode = prefs.getString('themeMode') ?? 'system';
       _language = prefs.getString('language') ?? 'fr';
       _selectedUnit = prefs.getString('selectedUnit') ?? 'KOFERT_Unit_1';
+      _autoReportEnabled = prefs.getBool('autoReportEnabled') ?? false;
+      _autoReportFrequency = prefs.getString('autoReportFrequency') ?? 'daily';
     });
   }
 
@@ -69,6 +82,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString('themeMode', _themeMode);
     await prefs.setString('language', _language);
     await prefs.setString('selectedUnit', _selectedUnit);
+    // Auto-report (local prefs)
+    await prefs.setBool('autoReportEnabled', _autoReportEnabled);
+    await prefs.setString('autoReportFrequency', _autoReportFrequency);
+    // Auto-report (Firestore — read by Cloud Function)
+    try {
+      await FirebaseFirestore.instance
+          .collection('config')
+          .doc('autoReport')
+          .set(
+            {
+              'enabled':   _autoReportEnabled,
+              'frequency': _autoReportFrequency,
+              'tariffRate': _tariffRate,
+              'updatedBy': FirebaseAuth.instance.currentUser?.uid ?? '',
+              'updatedAt': FieldValue.serverTimestamp(),
+            },
+            SetOptions(merge: true),
+          );
+    } catch (_) {
+      // Non-fatal: Cloud Function will fall back to local defaults
+    }
     // Apply live notifiers
     themeNotifier.value = _themeMode == 'light'
         ? ThemeMode.light
@@ -192,7 +226,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           if (roleNotifier.value == 'admin' || roleNotifier.value == 'moderator')
           const SizedBox(height: 24),
-          
+
+          // ── Auto-report section ─────────────────────────────────────────
+          if (roleNotifier.value == 'admin' || roleNotifier.value == 'moderator')
+          _buildSection(
+            'Rapports Automatiques',
+            Icons.schedule_send_outlined,
+            kTeal,
+            [
+              SwitchListTile(
+                title: const Text('Rapports périodiques par email'),
+                subtitle: const Text(
+                    'Envoyer automatiquement un résumé de consommation'),
+                secondary: const Icon(Icons.mark_email_read_outlined),
+                value: _autoReportEnabled,
+                onChanged: (v) => setState(() => _autoReportEnabled = v),
+              ),
+              if (_autoReportEnabled) ...
+              [
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Text('Fréquence :',
+                        style: TextStyle(fontSize: 13)),
+                    const SizedBox(width: 12),
+                    DropdownButton<String>(
+                      value: _autoReportFrequency,
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'daily',
+                            child: Text('Quotidien (24 h)')),
+                        DropdownMenuItem(
+                            value: 'weekly',
+                            child: Text('Hebdomadaire (7 j)')),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) {
+                          setState(() => _autoReportFrequency = v);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline, size: 14, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Un rapport mensuel est toujours envoyé le 1er de chaque mois.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+          if (roleNotifier.value == 'admin' || roleNotifier.value == 'moderator')
+          const SizedBox(height: 24),
+
           // Monitoring Units Section — admin, moderator & operator
           _buildSection(
             'Unités de Surveillance',

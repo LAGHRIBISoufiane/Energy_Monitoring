@@ -66,7 +66,7 @@ class EnergyData {
       voltage:     n(json['voltage'],      0.0),
       current:     n(json['current'],      0.0),
       power:       n(json['power'],        0.0),
-      energy:      n(json['energy'],       0.0),
+      energy:      n(json['energy'],       0.0) * 1000000, // kWh → mWh (PZEM-004T sends kWh)
       frequency:   n(json['frequency'],   50.0),
       windSpeed:   n(json['fan_speed'] ?? json['wind_speed'], 0.0),
       waterLevel:  (json['water_level'] as num?)?.toInt() ?? 0,

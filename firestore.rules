@@ -43,14 +43,16 @@ service cloud.firestore {
       allow read: if isAnyUser();
       allow create: if isOperator()
         && request.resource.data.keys().hasAll(['unitId', 'type', 'technicianName', 'timestamp', 'createdBy']);
-      allow update: if isOperator();
+      // Operators can update; assigned user can mark resolved even if observer/viewer
+      allow update: if isOperator()
+        || (isAnyUser() && resource.data.get('assignedToUid', '') == request.auth.uid);
       allow delete: if isAdmin();
     }
 
     // ── users (role store + profile) ───────────────────────────────────────
     match /users/{userId} {
-      // Anyone signed-in can read their own document; admins can read all.
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      // Any authenticated user can read profile data (needed for chat, user search, DM)
+      allow read: if isSignedIn();
 
       // On first login a user creates their own document — any fields allowed
       // (bootstrap: admin account sets its own role during initial provisioning).
@@ -63,9 +65,84 @@ service cloud.firestore {
         (isSignedIn() && request.auth.uid == userId
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
         || (isModerator() && request.resource.data.get('role', resource.data.get('role', 'viewer')) != 'admin')
-        || isAdmin();
+        || isAdmin()
+        // Bootstrap exception: hardcoded admin can set their own role to 'admin'
+        // even when their Firestore role hasn't been persisted yet.
+        || (isSignedIn() && request.auth.uid == userId
+            && request.auth.token.email == 'soufianelaghri1@gmail.com'
+            && request.resource.data.get('role', '') == 'admin');
 
       allow delete: if isAdmin();
+    }
+
+    // ── global_chat (shared chat room) ─────────────────────────────────────
+    match /global_chat/{msgId} {
+      allow read: if isAnyUser();
+      allow create: if isAnyUser()
+        && request.resource.data.keys().hasAll(['senderId', 'senderName', 'text', 'timestamp'])
+        && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ── dm_chats (direct messages, chatId = uid1_uid2 sorted) ────────────────
+    match /dm_chats/{chatId} {
+      function isParticipant() {
+        return chatId.matches(request.auth.uid + '_.*')
+            || chatId.matches('.*_' + request.auth.uid);
+      }
+      allow read, write: if isSignedIn() && isParticipant();
+      match /messages/{msgId} {
+        allow read: if isSignedIn() && isParticipant();
+        allow create: if isSignedIn() && isParticipant()
+          && request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // ── invitations (pending role invitations sent by admin/moderator) ────────
+    match /invitations/{invId} {
+      // Admin or moderator can create invitations
+      allow create: if isModerator();
+      // Admin/moderator can read all; invited user can read their own invitation
+      allow read: if isModerator()
+        || (isSignedIn() && resource.data.email == request.auth.token.email);
+      // Invited user can update status (accept/decline); admin/moderator can manage
+      allow update: if isModerator()
+        || (isSignedIn() && resource.data.email == request.auth.token.email);
+      allow delete: if isAdmin();
+    }
+
+    // ── alerts (triggered by dashboard, shown in AlertHistoryScreen) ──────────
+    match /alerts/{alertId} {
+      allow read: if isAnyUser();
+      allow create: if isAnyUser();
+      allow delete: if isAdmin();
+    }
+
+    // ── contacts (per-user DM contact list) ──────────────────────────────────
+    match /contacts/{userId}/list/{contactId} {
+      // Owner can fully manage their own contacts list
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      // Anyone signed in can add themselves as a contact of another user (mutual)
+      allow create, update: if isSignedIn() && request.auth.uid == contactId;
+    }
+
+    // ── config (app-wide settings written by admin, read by all users) ────────
+    match /config/{docId} {
+      allow read:  if isAnyUser();
+      allow write: if isAdmin();
+    }
+
+    // ── user_logs (activity audit trail) ────────────────────────────────────
+    match /user_logs/{logId} {
+      // Only admin and moderator can read logs
+      allow read: if isSignedIn() && (role() == 'admin' || role() == 'moderator');
+      // Any authenticated user can create their own log entry
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasAll(['userId', 'userEmail', 'action', 'timestamp'])
+        && request.resource.data.userId == request.auth.uid;
+      // Only admin can modify or delete
+      allow update, delete: if isAdmin();
     }
 
     // Deny everything else

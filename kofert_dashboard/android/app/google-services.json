@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "544635807392",
+    "firebase_url": "https://ocp-energy-monitor-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "ocp-energy-monitor",
+    "storage_bucket": "ocp-energy-monitor.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:544635807392:android:db0d85b9a414dede540bc5",
+        "android_client_info": {
+          "package_name": "com.example.kofert_dashboard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPBCTL233FZK16wtdoIcJM9OyvV4Qa8Lw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

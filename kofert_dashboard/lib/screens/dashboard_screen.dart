@@ -10,6 +10,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/energy_data.dart';
 import '../models/alert_entry.dart';
 import '../services/energy_repository.dart';
+import '../services/firestore_log_service.dart';
+import '../services/alert_notification_service.dart';
+import '../services/user_log_service.dart';
 import '../main.dart'
     show
         kTeal,
@@ -19,6 +22,7 @@ import '../main.dart'
         roleNotifier,
         browserNotifNotifier;
 import '../l10n/app_strings.dart';
+import '../utils/energy_format.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -38,7 +42,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final List<EnergyData> _history = [];
   bool _alertsEnabled = true;
   int _activeAlertsCount = 0;
+  // Cached alert thresholds — kept in sync with SharedPreferences by
+  // _loadSettings() and updated on each _updateAlerts() call.
+  double _pfThreshold    = 0.8;
+  double _vHighThreshold = 250.0;
+  double _vLowThreshold  = 200.0;
+  double _iMaxThreshold  = 50.0;
   double _tariffRate = 1.15;
+  String _currentPrefUnit = 'A';   // 'mA' | 'A'
+  String _voltagePrefUnit = 'V';   // 'mV' | 'V'
+  String _powerPrefUnit   = 'W';   // 'mW' | 'W' | 'kW'
+  String _energyPrefUnit  = 'kWh'; // 'mWh' | 'Wh' | 'kWh'
   String _selectedUnit = 'KOFERT_Unit_1';
   bool _noData = false;  // true when Firebase path exists but has no readings
   bool _autoRefresh = true;
@@ -51,6 +65,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String _pumpStatus = 'OFF'; // 'ON' or 'OFF'
   StreamSubscription? _pumpControlSub;
+  String _dashChartMetric = 'power'; // 'power'|'voltage'|'current'|'energy'|'pf'
+  // Accumulated energy (Wh) calculated from power × Δtime since the session started.
+  // Updated on every real-time reading — always changes, unaffected by PZEM unit quirks.
+  double _sessionEnergyWh = 0.0;
 
   static const _units = ['KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
 
@@ -82,11 +100,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
-      _alertsEnabled   = prefs.getBool('alertsEnabled') ?? true;
+      _alertsEnabled    = prefs.getBool('alertsEnabled') ?? true;
+      _pfThreshold     = prefs.getDouble('powerFactorThreshold') ?? 0.8;
+      _vHighThreshold  = prefs.getDouble('voltageThresholdHigh')  ?? 250.0;
+      _vLowThreshold   = prefs.getDouble('voltageThresholdLow')   ?? 200.0;
+      _iMaxThreshold   = prefs.getDouble('currentThreshold')      ?? 50.0;
       _tariffRate      = prefs.getDouble('tariffRate') ?? 1.15;
       _selectedUnit    = prefs.getString('selectedUnit') ?? 'KOFERT_Unit_1';
       _autoRefresh     = prefs.getBool('autoRefresh') ?? true;
       _refreshInterval = prefs.getInt('refreshInterval') ?? 5;
+      _currentPrefUnit = prefs.getString('unitCurrent') ?? 'A';
+      _voltagePrefUnit = prefs.getString('unitVoltage') ?? 'V';
+      _powerPrefUnit   = prefs.getString('unitPower')   ?? 'W';
+      _energyPrefUnit  = prefs.getString('unitEnergy')  ?? 'kWh';
     });
     selectedUnitNotifier.value = _selectedUnit;
     _resubscribe();
@@ -157,6 +183,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _noData = false;
       _history.clear();
       _cachedFallback = null;
+      _sessionEnergyWh = 0.0;
     });
     selectedUnitNotifier.value = unit;
     _resubscribe();
@@ -180,6 +207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!mounted) return;
       setState(() {
         _noData = false;
+        final prev = _current;
         _current = e;
         _history.add(e);
         if (_history.length > 60) _history.removeAt(0);
@@ -191,30 +219,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }  }
 
   void _updateAlerts(EnergyData data) {
-    if (!_alertsEnabled) { _activeAlertsCount = 0; return; }
+    if (!_alertsEnabled) { if (_activeAlertsCount != 0) setState(() => _activeAlertsCount = 0); return; }
     SharedPreferences.getInstance().then((prefs) {
-      int count = 0;
-      final vHigh = prefs.getDouble('voltageThresholdHigh') ?? 250.0;
-      final vLow  = prefs.getDouble('voltageThresholdLow') ?? 200.0;
-      final iMax  = prefs.getDouble('currentThreshold') ?? 50.0;
-      final pfMin = prefs.getDouble('powerFactorThreshold') ?? 0.8;
+      // Refresh cached thresholds so banner/dialog stay in sync with settings.
+      _vHighThreshold = prefs.getDouble('voltageThresholdHigh') ?? 250.0;
+      _vLowThreshold  = prefs.getDouble('voltageThresholdLow')  ?? 200.0;
+      _iMaxThreshold  = prefs.getDouble('currentThreshold')     ?? 50.0;
+      _pfThreshold    = prefs.getDouble('powerFactorThreshold') ?? 0.8;
 
+      int count = 0;
       // Voltage alerts only apply to Unit 1 (AC 220V) — Unit 2/3 are 5V DC
       if (_selectedUnit == 'KOFERT_Unit_1') {
-        if (data.voltage > vHigh || data.voltage < vLow) {
+        if (data.voltage > _vHighThreshold || data.voltage < _vLowThreshold) {
           count++;
-          _logAlert(data.hasHighVoltage ? 'Surtension' : 'Sous-tension',
+          _logAlert(data.voltage > _vHighThreshold ? 'Surtension' : 'Sous-tension',
               '${data.voltage.toStringAsFixed(1)} V', const Color(0xFFE74C3C));
         }
       }
-      if (data.current > iMax) {
+      if (data.current > _iMaxThreshold) {
         count++;
         _logAlert('Surcharge courant', '${data.current.toStringAsFixed(2)} A',
             const Color(0xFFE74C3C));
       }
       // Power factor & reactive power alerts only apply to Unit 1 (AC) — INA219 units are DC
       if (_selectedUnit == 'KOFERT_Unit_1') {
-        if (data.powerFactor < pfMin && data.powerFactor > 0) {
+        if (data.powerFactor < _pfThreshold && data.powerFactor > 0) {
           count++;
           _logAlert('Facteur de puissance bas',
               'FP = ${data.powerFactor.toStringAsFixed(3)}', kOrange);
@@ -264,6 +293,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
         unitId: _selectedUnit);
     // Update global notifier (creates a new list so listeners fire).
     alertLogNotifier.value = [...log, entry];
+    // Persist to Firestore for cross-session history (GetAlertHistory).
+    FirestoreLogService.instance.logAlert(
+      unitId: _selectedUnit,
+      title: title,
+      detail: detail,
+      colorValue: color.value,
+    );
+    // Broadcast email to all users (throttled — once per 5 min per type).
+    AlertNotificationService.instance.sendAlertToAllUsers(
+      title: title,
+      detail: detail,
+      unitId: _selectedUnit,
+    );
   }
 
   void _setFanSpeed(double pct) {
@@ -273,7 +315,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final pwmValue = (pct / 100.0 * 255).round();
       FirebaseDatabase.instance
           .ref('KOFERT_Unit_2/fan_control')
-          .update({'speed_percent': pct.round(), 'pwm_value': pwmValue});
+          .update({'speed_percent': pct.round(), 'pwm_value': pwmValue})
+          .catchError((e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Erreur ventilateur: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ));
+        }
+      });
+      UserLogService.instance.log(
+        action: 'other',
+        detail: 'Fan speed set to ${pct.round()}% (PWM $pwmValue)',
+      );
     });
   }
 
@@ -385,7 +440,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _resubscribe();
             },
             icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text('Réessayer'),
+            label: Text(AppStrings.t('retry')),
             style: OutlinedButton.styleFrom(
               foregroundColor: kTeal,
               side: BorderSide(color: kTeal.withValues(alpha: 0.5)),
@@ -400,7 +455,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildContent() {
     final d = _current!;
-    final log = alertLogNotifier.value;
     return LayoutBuilder(builder: (context, constraints) {
       final m = constraints.maxWidth < 600;
       return SingleChildScrollView(
@@ -417,26 +471,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _buildStatRow1(d, m),
             const SizedBox(height: 14),
             _buildStatRow2(d, m),
-            if (_selectedUnit == 'KOFERT_Unit_2') ...[
-              const SizedBox(height: 14),
-              _buildFanRow(d, m),
-              if (roleNotifier.value != 'viewer' && roleNotifier.value != 'observer') ...[
-                const SizedBox(height: 14),
-                _buildFanSpeedControl(),
-              ],
-            ],
-            if (_selectedUnit == 'KOFERT_Unit_3') ...[
-              const SizedBox(height: 14),
-              _buildPumpControl(d, editable: roleNotifier.value != 'viewer' && roleNotifier.value != 'observer', isMobile: m),
-            ],
+            ValueListenableBuilder<String>(
+              valueListenable: roleNotifier,
+              builder: (_, role, __) {
+                final canControl = role == 'admin' ||
+                    role == 'moderator' ||
+                    role == 'operator';
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_selectedUnit == 'KOFERT_Unit_2') ...[
+                      const SizedBox(height: 14),
+                      _buildFanRow(d, m),
+                      if (canControl) ...[
+                        const SizedBox(height: 14),
+                        _buildFanSpeedControl(),
+                      ],
+                    ],
+                    if (_selectedUnit == 'KOFERT_Unit_3') ...[
+                      const SizedBox(height: 14),
+                      _buildPumpControl(
+                          d, editable: canControl, isMobile: m),
+                    ],
+                  ],
+                );
+              },
+            ),
             const SizedBox(height: 24),
             _buildPowerOverview(m),
             const SizedBox(height: 20),
             _buildBottomRow(d, m),
-            if (log.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              _buildAlertLog(log),
-            ],
+            ValueListenableBuilder<List<AlertEntry>>(
+              valueListenable: alertLogNotifier,
+              builder: (_, log, __) {
+                if (log.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 24),
+                    _buildAlertLog(log),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       );
@@ -470,6 +547,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onChanged: (v) { if (v != null) _switchUnit(v); },
               ),
             ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: _showUnitPrefsDialog,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(color: _c.card, borderRadius: BorderRadius.circular(12)),
+            child: Icon(Icons.straighten_outlined, color: _c.textSec, size: 18),
           ),
         ),
         const SizedBox(width: 8),
@@ -543,9 +629,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             const Icon(Icons.payments_outlined, color: kOrange, size: 16),
             const SizedBox(width: 6),
-            Text('${_tariffRate.toStringAsFixed(2)} MAD/mWh',
+            Text('${_tariffRate.toStringAsFixed(2)} MAD/kWh',
                 style: const TextStyle(color: kOrange, fontSize: 13)),
           ]),
+        ),
+        const SizedBox(width: 8),
+        // ── Unit preferences ────────────────────────────────────
+        Tooltip(
+          message: 'Préférences d\'unités',
+          child: GestureDetector(
+            onTap: _showUnitPrefsDialog,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(color: _c.card, borderRadius: BorderRadius.circular(12)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.straighten_outlined, color: _c.textSec, size: 16),
+                const SizedBox(width: 5),
+                Text('$_currentPrefUnit · $_voltagePrefUnit · $_powerPrefUnit · $_energyPrefUnit',
+                    style: TextStyle(color: _c.textSec, fontSize: 11)),
+              ]),
+            ),
+          ),
         ),
         const Spacer(),
         // ── Live clock ──────────────────────────────────────────
@@ -679,16 +783,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ── Stat rows ──────────────────────────────────────────────────────────────
+  // Unit-preference converters
+  /// Returns the SfChart labelFormat string for the given dashboard metric.
+  String _chartUnitLabel(String metric) {
+    switch (metric) {
+      case 'power':   return '{value} $_powerPrefUnit';
+      case 'voltage': return '{value} $_voltagePrefUnit';
+      case 'current': return '{value} $_currentPrefUnit';
+      case 'energy':  return '{value} $_energyPrefUnit';
+      case 'pf':      return '{value}';
+      default:        return '{value}';
+    }
+  }
+
+  (String val, String unit) _cvtCurrent(double a) {
+    if (_currentPrefUnit == 'mA') return ('${(a * 1000).toStringAsFixed(1)}', 'mA');
+    return (a.toStringAsFixed(3), 'A');
+  }
+
+  (String val, String unit) _cvtVoltage(double v) {
+    if (_voltagePrefUnit == 'mV') return ('${(v * 1000).toStringAsFixed(0)}', 'mV');
+    return (v.toStringAsFixed(1), 'V');
+  }
+
+  (String val, String unit) _cvtPower(double w) {
+    if (_powerPrefUnit == 'mW') return ('${(w * 1000).toStringAsFixed(1)}', 'mW');
+    if (_powerPrefUnit == 'kW') return ('${(w / 1000).toStringAsFixed(4)}', 'kW');
+    return (w.toStringAsFixed(1), 'W');
+  }
+
+  (String val, String unit) _cvtEnergy(double mwh) {
+    if (_energyPrefUnit == 'mWh') return ('${mwh.toStringAsFixed(0)}', 'mWh');
+    if (_energyPrefUnit == 'Wh')  return ('${(mwh / 1000).toStringAsFixed(2)}', 'Wh');
+    final kwh = mwh / 1000000;
+    if (kwh >= 1.0)   return (kwh.toStringAsFixed(2), 'kWh');
+    if (kwh >= 0.001) return (kwh.toStringAsFixed(4), 'kWh');
+    return ('0.00', 'kWh'); // near-zero — still show kWh unit
+  }
+
   Widget _buildStatRow1(EnergyData d, bool m) {
+    final (pVal, pUnit) = _cvtPower(d.power);
+    final (eVal, eUnit) = _cvtEnergy(d.energy); // already mWh (converted in EnergyData.fromJson)
+    final (vVal, vUnit) = _cvtVoltage(d.voltage);
+    final (iVal, iUnit) = _cvtCurrent(d.current);
     final c1 = _StatCard(icon: '⚡', iconBg: kOrange,
-        value: d.power.toStringAsFixed(1), unit: 'W', label: AppStrings.t('active_power'));
+        value: pVal, unit: pUnit, label: AppStrings.t('active_power'));
     final c2 = _StatCard(icon: '🔋', iconBg: kTeal,
-        value: d.energy.toStringAsFixed(2), unit: 'mWh', label: AppStrings.t('energy_consumed'));
+        value: eVal, unit: eUnit, label: AppStrings.t('energy_consumed'));
     final c3 = _StatCard(icon: '🔌', iconBg: const Color(0xFFFF6B8A),
-        value: d.voltage.toStringAsFixed(1), unit: 'V', label: AppStrings.t('voltage'),
+        value: vVal, unit: vUnit, label: AppStrings.t('voltage'),
         alert: d.hasHighVoltage || d.hasLowVoltage);
     final c4 = _StatCard(icon: '〰', iconBg: const Color(0xFF4FC3F7),
-        value: d.current.toStringAsFixed(2), unit: 'A', label: AppStrings.t('current'),
+        value: iVal, unit: iUnit, label: AppStrings.t('current'),
         alert: d.hasHighCurrent);
     if (m) {
       return Column(children: [
@@ -706,7 +852,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatRow2(EnergyData d, bool m) {
-    final cost = d.energy * _tariffRate;
+    final cost = (d.energy / 1000000) * _tariffRate; // mWh ÷ 1M → kWh × MAD/kWh = MAD
     // INA219 units (Unit 2 fan 5 V DC, Unit 3 pump 5 V DC) — no AC metrics.
     if (d.isINA219) {
       final powerMw = d.power * 1000; // W → mW for display clarity at low wattage
@@ -759,10 +905,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── Pump control + water level (only for KOFERT_Unit_3) ──────────────────
   void _setPumpStatus(String status) {
+    final previous = _pumpStatus;
     setState(() => _pumpStatus = status);
     FirebaseDatabase.instance
         .ref('KOFERT_Unit_3/current_metrics/pump_status')
-        .set(status);
+        .set(status)
+        .catchError((e) {
+      if (mounted) {
+        setState(() => _pumpStatus = previous); // revert on failure
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Erreur pompe: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ));
+      }
+    });
+    UserLogService.instance.log(
+      action: 'other',
+      detail: 'Pump turned $status',
+    );
   }
 
   Widget _buildPumpControl(EnergyData d, {bool editable = true, bool isMobile = false}) {
@@ -792,7 +953,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Icon(Icons.water_outlined, color: pumpColor, size: 22),
             ),
             const SizedBox(width: 12),
-            Flexible(child: Text('Contrôle Pompe',
+            Flexible(child: Text(AppStrings.t('pump_control'),
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: _c.textPri, fontWeight: FontWeight.bold, fontSize: 15))),
             const Spacer(),
@@ -803,7 +964,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: pumpColor.withValues(alpha: 0.5)),
               ),
-              child: Text(isOn ? 'EN MARCHE' : 'ARRÊTÉE',
+              child: Text(isOn ? AppStrings.t('running') : AppStrings.t('stopped'),
                   style: TextStyle(color: pumpColor, fontWeight: FontWeight.bold, fontSize: 13)),
             ),
           ]),
@@ -878,7 +1039,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Icon(Icons.water_drop_outlined, color: waterColor, size: 22),
             ),
             const SizedBox(width: 12),
-            Flexible(child: Text('Niveau Réservoir',
+            Flexible(child: Text(AppStrings.t('tank_level'),
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: _c.textPri, fontWeight: FontWeight.bold, fontSize: 15))),
             const Spacer(),
@@ -909,8 +1070,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text('0 %', style: TextStyle(color: _c.textSec, fontSize: 11)),
               Text(
-                water < 20 ? 'Niveau critique !' : water < 50 ? 'Niveau bas'
-                    : water < 80 ? 'Niveau correct' : 'Niveau élevé',
+                water < 20 ? AppStrings.t('water_critical') : water < 50 ? AppStrings.t('water_low')
+                    : water < 80 ? AppStrings.t('water_ok') : AppStrings.t('water_high'),
                 style: TextStyle(color: waterColor, fontSize: 12, fontWeight: FontWeight.w600),
               ),
               Text('100 %', style: TextStyle(color: _c.textSec, fontSize: 11)),
@@ -984,7 +1145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Contrôle Vitesse Ventilateur',
+                AppStrings.t('fan_speed_control'),
                 style: TextStyle(
                     color: _c.textPri,
                     fontWeight: FontWeight.bold,
@@ -1045,15 +1206,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              _PresetBtn(label: 'Arrêt',  value: 0,   current: pct, onTap: _setFanSpeed),
+              _PresetBtn(label: AppStrings.t('fan_off'),  value: 0,   current: pct, onTap: _setFanSpeed),
               const SizedBox(width: 8),
-              _PresetBtn(label: 'Faible', value: 25,  current: pct, onTap: _setFanSpeed),
+              _PresetBtn(label: AppStrings.t('fan_low'), value: 25,  current: pct, onTap: _setFanSpeed),
               const SizedBox(width: 8),
-              _PresetBtn(label: 'Moyen',  value: 50,  current: pct, onTap: _setFanSpeed),
+              _PresetBtn(label: AppStrings.t('fan_medium'),  value: 50,  current: pct, onTap: _setFanSpeed),
               const SizedBox(width: 8),
-              _PresetBtn(label: 'Rapide', value: 75,  current: pct, onTap: _setFanSpeed),
+              _PresetBtn(label: AppStrings.t('fan_fast'), value: 75,  current: pct, onTap: _setFanSpeed),
               const SizedBox(width: 8),
-              _PresetBtn(label: 'Max',    value: 100, current: pct, onTap: _setFanSpeed),
+              _PresetBtn(label: AppStrings.t('fan_max'),    value: 100, current: pct, onTap: _setFanSpeed),
             ],
           ),
         ],
@@ -1085,12 +1246,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── Alert banner ───────────────────────────────────────────────────────────
   Widget _buildAlertBanner(EnergyData d) {
+    // Use cached configurable thresholds (same as badge counter and dialog).
+    final isUnit1 = _selectedUnit == 'KOFERT_Unit_1';
     final parts = <String>[];
-    if (d.hasHighVoltage) parts.add('Surtension (${d.voltage.toStringAsFixed(0)} V)');
-    if (d.hasLowVoltage) parts.add('Sous-tension (${d.voltage.toStringAsFixed(0)} V)');
-    if (d.hasHighCurrent) parts.add('Surcharge (${d.current.toStringAsFixed(1)} A)');
-    if (d.hasLowPowerFactor) parts.add('FP bas (${d.powerFactor.toStringAsFixed(2)})');
-    if (d.hasHighReactivePower) parts.add('Q élevée (${d.reactivePower.toStringAsFixed(0)} VAR)');
+    if (isUnit1 && d.voltage > _vHighThreshold) parts.add('Surtension (${d.voltage.toStringAsFixed(0)} V)');
+    if (isUnit1 && d.voltage < _vLowThreshold)  parts.add('Sous-tension (${d.voltage.toStringAsFixed(0)} V)');
+    if (d.current > _iMaxThreshold) parts.add('Surcharge (${d.current.toStringAsFixed(1)} A)');
+    if (isUnit1 && d.powerFactor < _pfThreshold && d.powerFactor > 0) parts.add('FP bas (${d.powerFactor.toStringAsFixed(2)})');
+    if (isUnit1 && d.hasHighReactivePower) parts.add('Q élevée (${d.reactivePower.toStringAsFixed(0)} VAR)');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -1114,27 +1277,84 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ── Power overview chart ──────────────────────────────────────────────────
   Widget _buildPowerOverview([bool m = false]) {
-    final points = _history.asMap().entries
-        .map((e) => _ChartPoint(e.key.toDouble(), e.value.power))
-        .toList();
-    final appPoints = _history.asMap().entries
-        .map((e) => _ChartPoint(e.key.toDouble(), e.value.apparentPower))
-        .toList();
+    // Build chart points for the selected metric
+    List<_ChartPoint> _buildPoints(String metric) {
+      return _history.asMap().entries.map((e) {
+        final v = e.value;
+        double y;
+        switch (metric) {
+          case 'voltage':
+            y = _voltagePrefUnit == 'mV' ? v.voltage * 1000 : v.voltage; break;
+          case 'current':
+            y = _currentPrefUnit == 'mA' ? v.current * 1000 : v.current; break;
+          case 'energy':
+            y = mwhToUnit(v.energy, _energyPrefUnit); break;
+          case 'pf':
+            y = v.powerFactor; break;
+          case 'apparent':
+            y = v.apparentPower; break;
+          default: // power
+            if (_powerPrefUnit == 'mW')      y = v.power * 1000;
+            else if (_powerPrefUnit == 'kW') y = v.power / 1000;
+            else                             y = v.power;
+        }
+        return _ChartPoint(e.key.toDouble(), y);
+      }).toList();
+    }
 
-    final legend = Row(children: [
-      _LegendDot(color: kTeal, label: 'Active (W)'),
-      const SizedBox(width: 14),
-      _LegendDot(color: kOrange, label: 'Apparente (VA)'),
-      const SizedBox(width: 14),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-            color: kTeal.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(20)),
-        child: Text(AppStrings.t('live'),
-            style: TextStyle(color: kTeal, fontSize: 11, fontWeight: FontWeight.w600)),
+    // Metric chip definitions: (key, label, color)
+    const chips = [
+      ('power',   'metric_power',   kTeal),
+      ('voltage', 'metric_voltage', kOrange),
+      ('current', 'metric_current', Color(0xFFFF6B8A)),
+      ('energy',  'metric_energy',  Color(0xFF4FC3F7)),
+      ('pf',      'metric_pf',      Color(0xFF9B59B6)),
+    ];
+
+    final chipsRow = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: chips.map((chip) {
+          final sel = _dashChartMetric == chip.$1;
+          final color = chip.$3;
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: GestureDetector(
+              onTap: () => setState(() => _dashChartMetric = chip.$1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: sel ? color.withValues(alpha: 0.2) : _c.bg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: sel ? color : _c.divider),
+                ),
+                child: Text(
+                  AppStrings.t(chip.$2),
+                  style: TextStyle(
+                      color: sel ? color : _c.textSec,
+                      fontSize: 12,
+                      fontWeight: sel ? FontWeight.w600 : FontWeight.normal),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
-    ]);
+    );
+
+    // Chart color / label based on selection
+    Color chartColor = kTeal;
+    String chartName = AppStrings.t('metric_power');
+    switch (_dashChartMetric) {
+      case 'voltage': chartColor = kOrange; chartName = AppStrings.t('metric_voltage'); break;
+      case 'current': chartColor = const Color(0xFFFF6B8A); chartName = AppStrings.t('metric_current'); break;
+      case 'energy':  chartColor = const Color(0xFF4FC3F7); chartName = AppStrings.t('metric_energy'); break;
+      case 'pf':      chartColor = const Color(0xFF9B59B6); chartName = AppStrings.t('metric_pf'); break;
+    }
+
+    final points = _buildPoints(_dashChartMetric);
+    final showApparent = _dashChartMetric == 'power';
+    final appPoints = showApparent ? _buildPoints('apparent') : null;
 
     return Container(
       decoration: BoxDecoration(color: _c.card, borderRadius: BorderRadius.circular(16)),
@@ -1142,20 +1362,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (m) ...[  // On mobile: stack title and legend vertically to avoid overflow
-            Text(AppStrings.t('power_overview'),
-                style: TextStyle(color: _c.textPri, fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 8),
-            legend,
-          ] else
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(AppStrings.t('power_overview'),
-                    style: TextStyle(color: _c.textPri, fontWeight: FontWeight.bold, fontSize: 16)),
-                legend,
-              ],
-            ),
+          Text(AppStrings.t('power_overview'),
+              style: TextStyle(color: _c.textPri, fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 10),
+          chipsRow,
           const SizedBox(height: 16),
           SizedBox(
             height: 240,
@@ -1172,31 +1382,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       majorGridLines: MajorGridLines(
                           color: Colors.white.withValues(alpha: 0.06), width: 1),
                       majorTickLines: const MajorTickLines(size: 0),
+                      labelFormat: _chartUnitLabel(_dashChartMetric),
                     ),
                     tooltipBehavior: TooltipBehavior(enable: true),
+                    legend: showApparent
+                        ? const Legend(isVisible: true, position: LegendPosition.top)
+                        : const Legend(isVisible: false),
                     series: <CartesianSeries>[
                       SplineAreaSeries<_ChartPoint, double>(
                         dataSource: points,
                         xValueMapper: (p, _) => p.x,
                         yValueMapper: (p, _) => p.y,
-                        name: 'Active (W)',
-                        color: kTeal.withValues(alpha: 0.25),
-                        borderColor: kTeal,
+                        name: chartName,
+                        color: chartColor.withValues(alpha: 0.25),
+                        borderColor: chartColor,
                         borderWidth: 2.5,
                         gradient: LinearGradient(
                           begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                          colors: [kTeal.withValues(alpha: 0.4), kTeal.withValues(alpha: 0.0)],
+                          colors: [chartColor.withValues(alpha: 0.4), chartColor.withValues(alpha: 0.0)],
                         ),
                       ),
-                      SplineSeries<_ChartPoint, double>(
-                        dataSource: appPoints,
-                        xValueMapper: (p, _) => p.x,
-                        yValueMapper: (p, _) => p.y,
-                        name: 'Apparente (VA)',
-                        color: kOrange,
-                        width: 1.8,
-                        dashArray: const [6, 3],
-                      ),
+                      if (appPoints != null)
+                        SplineSeries<_ChartPoint, double>(
+                          dataSource: appPoints,
+                          xValueMapper: (p, _) => p.x,
+                          yValueMapper: (p, _) => p.y,
+                          name: 'Apparente (VA)',
+                          color: kOrange,
+                          width: 1.8,
+                          dashArray: const [6, 3],
+                        ),
                     ],
                   ),
           ),
@@ -1212,12 +1427,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final pfChild = _buildPFGauge(d.powerFactor);
     final tChild = _MiniBarChart(
-      title: 'Tension (V)', color: kOrange,
-      data: last7.asMap().entries.map((e) => _BarItem(labels[e.key], e.value.voltage)).toList(),
+      title: 'Tension ($_voltagePrefUnit)', color: kOrange,
+      data: last7.asMap().entries.map((e) => _BarItem(labels[e.key],
+          _voltagePrefUnit == 'mV' ? e.value.voltage * 1000 : e.value.voltage)).toList(),
     );
     final curChild = _MiniBarChart(
-      title: 'Courant (A)', color: const Color(0xFFFF6B8A),
-      data: last7.asMap().entries.map((e) => _BarItem(labels[e.key], e.value.current)).toList(),
+      title: 'Courant ($_currentPrefUnit)', color: const Color(0xFFFF6B8A),
+      data: last7.asMap().entries.map((e) => _BarItem(labels[e.key],
+          _currentPrefUnit == 'mA' ? e.value.current * 1000 : e.value.current)).toList(),
     );
     final rChild = _MiniBarChart(
       title: 'Réactive (VAR)', color: const Color(0xFF9B59B6),
@@ -1334,9 +1551,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ── Alert dialog ───────────────────────────────────────────────────────────
-  void _showAlertDialog() {
+  void _showAlertDialog() async {
     final d = _current;
     if (d == null) return;
+    // Use the same configurable thresholds as _updateAlerts() so badge and
+    // popup are always in sync (EnergyData getters use hardcoded values).
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    final vHigh = prefs.getDouble('voltageThresholdHigh') ?? 250.0;
+    final vLow  = prefs.getDouble('voltageThresholdLow')  ?? 200.0;
+    final iMax  = prefs.getDouble('currentThreshold')     ?? 50.0;
+    final pfMin = prefs.getDouble('powerFactorThreshold') ?? 0.8;
+    final isUnit1 = _selectedUnit == 'KOFERT_Unit_1';
+    final alertHighV = isUnit1 && d.voltage > vHigh;
+    final alertLowV  = isUnit1 && d.voltage < vLow;
+    final alertHighI = d.current > iMax;
+    final alertLowPF = isUnit1 && d.powerFactor < pfMin && d.powerFactor > 0;
+    final alertHighQ = isUnit1 && d.hasHighReactivePower;
+    final hasAny = alertHighV || alertLowV || alertHighI || alertLowPF || alertHighQ;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -1352,12 +1584,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (d.hasHighVoltage) _alertDialogRow(AppStrings.t('alert_high_voltage'), '${d.voltage.toStringAsFixed(d.isINA219 ? 2 : 0)} V > ${d.isINA219 ? '5.5' : '250'} V', const Color(0xFFE74C3C)),
-              if (d.hasLowVoltage) _alertDialogRow(AppStrings.t('alert_low_voltage'), '${d.voltage.toStringAsFixed(d.isINA219 ? 2 : 0)} V < ${d.isINA219 ? '4.0' : '200'} V', const Color(0xFFE74C3C)),
-              if (d.hasHighCurrent) _alertDialogRow(AppStrings.t('alert_high_current'), '${d.current.toStringAsFixed(2)} A', const Color(0xFFE74C3C)),
-              if (d.hasLowPowerFactor) _alertDialogRow(AppStrings.t('alert_low_pf'), 'FP = ${d.powerFactor.toStringAsFixed(3)}', kOrange),
-              if (d.hasHighReactivePower) _alertDialogRow(AppStrings.t('alert_high_reactive'), '${d.reactivePower.toStringAsFixed(0)} VAR', kOrange),
-              if (!d.hasAlerts) Text(AppStrings.t('no_active_alerts'), style: TextStyle(color: _c.textSec)),
+              if (alertHighV) _alertDialogRow(AppStrings.t('alert_high_voltage'), '${d.voltage.toStringAsFixed(0)} V > ${vHigh.toStringAsFixed(0)} V', const Color(0xFFE74C3C)),
+              if (alertLowV)  _alertDialogRow(AppStrings.t('alert_low_voltage'),  '${d.voltage.toStringAsFixed(0)} V < ${vLow.toStringAsFixed(0)} V', const Color(0xFFE74C3C)),
+              if (alertHighI) _alertDialogRow(AppStrings.t('alert_high_current'), '${d.current.toStringAsFixed(2)} A > ${iMax.toStringAsFixed(0)} A', const Color(0xFFE74C3C)),
+              if (alertLowPF) _alertDialogRow(AppStrings.t('alert_low_pf'), 'FP = ${d.powerFactor.toStringAsFixed(3)} < ${pfMin.toStringAsFixed(2)}', kOrange),
+              if (alertHighQ) _alertDialogRow(AppStrings.t('alert_high_reactive'), '${d.reactivePower.toStringAsFixed(0)} VAR', kOrange),
+              if (!hasAny) Text(AppStrings.t('no_active_alerts'), style: TextStyle(color: _c.textSec)),
             ],
           ),
         ),
@@ -1382,6 +1614,102 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(detail, style: TextStyle(color: _c.textSec, fontSize: 12)),
         ])),
       ]),
+    );
+  }
+
+  // ── Unit preferences dialog ───────────────────────────────────────────────
+  Future<void> _showUnitPrefsDialog() async {
+    String cu = _currentPrefUnit;
+    String vu = _voltagePrefUnit;
+    String pu = _powerPrefUnit;
+    String eu = _energyPrefUnit;
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) => AlertDialog(
+          backgroundColor: _c.card,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(children: [
+            const Icon(Icons.straighten_outlined, color: kTeal),
+            const SizedBox(width: 8),
+            Text('Unités d\'affichage', style: TextStyle(color: _c.textPri, fontWeight: FontWeight.bold)),
+          ]),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              _unitPickerRow(setDlg, AppStrings.t('current'), ['mA', 'A'], cu, (v) => cu = v),
+              const SizedBox(height: 18),
+              _unitPickerRow(setDlg, AppStrings.t('voltage'), ['mV', 'V'], vu, (v) => vu = v),
+              const SizedBox(height: 18),
+              _unitPickerRow(setDlg, AppStrings.t('active_power'), ['mW', 'W', 'kW'], pu, (v) => pu = v),
+              const SizedBox(height: 18),
+              _unitPickerRow(setDlg, AppStrings.t('energy_consumed'), ['mWh', 'Wh', 'kWh'], eu, (v) => eu = v),
+            ]),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(AppStrings.t('close'), style: TextStyle(color: _c.textSec)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('unitCurrent', cu);
+                await prefs.setString('unitVoltage', vu);
+                await prefs.setString('unitPower', pu);
+                await prefs.setString('unitEnergy', eu);
+                if (mounted) setState(() {
+                  _currentPrefUnit = cu;
+                  _voltagePrefUnit = vu;
+                  _powerPrefUnit   = pu;
+                  _energyPrefUnit  = eu;
+                });
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kTeal,
+                foregroundColor: Colors.black87,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Text(AppStrings.t('save')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _unitPickerRow(StateSetter setDlg, String label, List<String> options, String current, void Function(String) onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(color: _c.textSec, fontSize: 13, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: options.map((opt) {
+            final sel = opt == current;
+            return GestureDetector(
+              onTap: () => setDlg(() => onChanged(opt)),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                decoration: BoxDecoration(
+                  color: sel ? kTeal.withValues(alpha: 0.18) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: sel ? kTeal : _c.divider.withValues(alpha: 0.3)),
+                ),
+                child: Text(opt, style: TextStyle(
+                  color: sel ? kTeal : _c.textSec,
+                  fontSize: 13,
+                  fontWeight: sel ? FontWeight.bold : FontWeight.normal,
+                )),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }
@@ -1562,23 +1890,6 @@ class _BarItem {
   const _BarItem(this.label, this.value);
 }
 
-// ── Legend dot ────────────────────────────────────────────────────────────────
-class _LegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _LegendDot({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = AppColors.of(context);
-    return Row(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: 10, height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-      const SizedBox(width: 5),
-      Text(label, style: TextStyle(color: c.textSec, fontSize: 11)),
-    ]);
-  }
-}
 
 // ── Alert row widget ──────────────────────────────────────────────────────────
 class _AlertRow extends StatelessWidget {

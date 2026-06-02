@@ -60,10 +60,10 @@ class UserRecord {
     this.lastSeen,
   });
 
-  UserRecord copyWith({String? presenceStatus, DateTime? lastSeen}) =>
+  UserRecord copyWith({String? name, String? presenceStatus, DateTime? lastSeen}) =>
       UserRecord(
         uid: uid,
-        name: name,
+        name: name ?? this.name,
         customId: customId,
         email: email,
         presenceStatus: presenceStatus ?? this.presenceStatus,

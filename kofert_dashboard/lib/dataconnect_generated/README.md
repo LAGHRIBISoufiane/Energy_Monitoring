@@ -200,6 +200,181 @@ ref.execute();
 ref.subscribe(...);
 ```
 
+
+### GetAlertHistory
+#### Required Arguments
+```dart
+String unitId = ...;
+ExampleConnector.instance.getAlertHistory(
+  unitId: unitId,
+).execute();
+```
+
+#### Optional Arguments
+We return a builder for each query. For GetAlertHistory, we created `GetAlertHistoryBuilder`. For queries and mutations with optional parameters, we return a builder class.
+The builder pattern allows Data Connect to distinguish between fields that haven't been set and fields that have been set to null. A field can be set by calling its respective setter method like below:
+```dart
+class GetAlertHistoryVariablesBuilder {
+  ...
+   GetAlertHistoryVariablesBuilder limit(int? t) {
+   _limit.value = t;
+   return this;
+  }
+
+  ...
+}
+ExampleConnector.instance.getAlertHistory(
+  unitId: unitId,
+)
+.limit(limit)
+.execute();
+```
+
+#### Return Type
+`execute()` returns a `QueryResult<GetAlertHistoryData, GetAlertHistoryVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+/// Result of a query request. Created to hold extra variables in the future.
+class QueryResult<Data, Variables> extends OperationResult<Data, Variables> {
+  QueryResult(super.dataConnect, super.data, super.ref);
+}
+
+final result = await ExampleConnector.instance.getAlertHistory(
+  unitId: unitId,
+);
+GetAlertHistoryData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String unitId = ...;
+
+final ref = ExampleConnector.instance.getAlertHistory(
+  unitId: unitId,
+).ref();
+ref.execute();
+
+ref.subscribe(...);
+```
+
+
+### GetMetricsByDateRange
+#### Required Arguments
+```dart
+String unitId = ...;
+Timestamp startDate = ...;
+Timestamp endDate = ...;
+ExampleConnector.instance.getMetricsByDateRange(
+  unitId: unitId,
+  startDate: startDate,
+  endDate: endDate,
+).execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `QueryResult<GetMetricsByDateRangeData, GetMetricsByDateRangeVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+/// Result of a query request. Created to hold extra variables in the future.
+class QueryResult<Data, Variables> extends OperationResult<Data, Variables> {
+  QueryResult(super.dataConnect, super.data, super.ref);
+}
+
+final result = await ExampleConnector.instance.getMetricsByDateRange(
+  unitId: unitId,
+  startDate: startDate,
+  endDate: endDate,
+);
+GetMetricsByDateRangeData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String unitId = ...;
+Timestamp startDate = ...;
+Timestamp endDate = ...;
+
+final ref = ExampleConnector.instance.getMetricsByDateRange(
+  unitId: unitId,
+  startDate: startDate,
+  endDate: endDate,
+).ref();
+ref.execute();
+
+ref.subscribe(...);
+```
+
+
+### GetEnergyUnit
+#### Required Arguments
+```dart
+String unitId = ...;
+ExampleConnector.instance.getEnergyUnit(
+  unitId: unitId,
+).execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `QueryResult<GetEnergyUnitData, GetEnergyUnitVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+/// Result of a query request. Created to hold extra variables in the future.
+class QueryResult<Data, Variables> extends OperationResult<Data, Variables> {
+  QueryResult(super.dataConnect, super.data, super.ref);
+}
+
+final result = await ExampleConnector.instance.getEnergyUnit(
+  unitId: unitId,
+);
+GetEnergyUnitData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String unitId = ...;
+
+final ref = ExampleConnector.instance.getEnergyUnit(
+  unitId: unitId,
+).ref();
+ref.execute();
+
+ref.subscribe(...);
+```
+
 ## Mutations
 
 ### CreateEnergyUnit

@@ -52,8 +52,10 @@ class FirestoreLogService {
       });
 
       await batch.commit();
-    } catch (_) {
+    } catch (e) {
       // Firestore writes are best-effort — never crash the UI
+      // ignore: avoid_print
+      print('[FirestoreLogService] write error for $unitId: $e');
     }
   }
 
@@ -70,10 +72,13 @@ class FirestoreLogService {
       'reactivePower': d.reactivePower,
     };
 
+    // Power and energy for all units
+    base['power'] = d.power;
+    // Store energy as mWh (internal unit) — consistent with all historical records
+    base['energy'] = d.energy;
+
     // AC-only fields (KOFERT_Unit_1 / PZEM)
     if (!d.isINA219) {
-      base['power'] = d.power;
-      base['energy'] = d.energy;
       base['frequency'] = d.frequency;
     }
 
@@ -128,6 +133,89 @@ class FirestoreLogService {
       for (final doc in snap.docs)
         doc.id: {'id': doc.id, ...doc.data()},
     };
+  }
+
+  /// Persist an alert event to the `alerts` Firestore collection.
+  /// Called from DashboardScreen whenever a threshold alert fires.
+  Future<void> logAlert({
+    required String unitId,
+    required String title,
+    required String detail,
+    required int colorValue,
+  }) async {
+    try {
+      await _db.collection('alerts').add({
+        'unitId': unitId,
+        'title': title,
+        'detail': detail,
+        'colorValue': colorValue,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
+  }
+
+  /// Fetch the most recent [limit] alerts ordered by time, newest first.
+  /// Optionally filter by [unitId].
+  Future<List<Map<String, dynamic>>> getAlerts({
+    String? unitId,
+    int limit = 100,
+  }) async {
+    try {
+      Query q = _db
+          .collection('alerts')
+          .orderBy('timestamp', descending: true)
+          .limit(limit);
+      if (unitId != null) q = q.where('unitId', isEqualTo: unitId);
+      final snap = await q.get();
+      return snap.docs
+          .map((d) => {'id': d.id, ...d.data() as Map<String, dynamic>})
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // ── Persistent energy accumulator ─────────────────────────────────────────
+  // Collection: energy_accumulators / {unitId}
+  // Field:      totalWh  (double)  — accumulated Wh since installation
+
+  final _lastEnergySave = <String, DateTime>{};
+
+  /// Load the accumulated energy (Wh) for [unitId] from Firestore.
+  /// Returns 0.0 if no record exists yet.
+  Future<double> loadAccumulatedEnergy(String unitId) async {
+    try {
+      final doc = await _db.collection('energy_accumulators').doc(unitId).get();
+      if (!doc.exists) return 0.0;
+      return (doc.data()?['totalWh'] as num?)?.toDouble() ?? 0.0;
+    } catch (_) {
+      return 0.0;
+    }
+  }
+
+  /// Persist [totalWh] for [unitId].  Throttled to one write every 30 s.
+  Future<void> saveAccumulatedEnergy(String unitId, double totalWh) async {
+    final now = DateTime.now();
+    final last = _lastEnergySave[unitId];
+    if (last != null && now.difference(last).inSeconds < 30) return;
+    _lastEnergySave[unitId] = now;
+    try {
+      await _db.collection('energy_accumulators').doc(unitId).set({
+        'totalWh': totalWh,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  /// Fetch the latest status snapshot for [unitId] from `unit_status`.
+  Future<Map<String, dynamic>?> getUnitStatus(String unitId) async {
+    try {
+      final doc = await _db.collection('unit_status').doc(unitId).get();
+      if (!doc.exists) return null;
+      return {'id': doc.id, ...doc.data()!};
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Aggregate daily energy for [unitId] on [day] (UTC date).

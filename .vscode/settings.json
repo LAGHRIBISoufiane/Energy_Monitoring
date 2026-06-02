@@ -1,0 +1,42 @@
+{
+    "chat.agent.maxRequests": 100,
+    // "cmake.sourceDirectory": "C:/Users/riosh/Documents/Energy_Monitoring/kofert_dashboard/windows", // Commented out - not needed for Flutter
+    "sonarlint.ls.javaHome": "C:/Program Files/Eclipse Adoptium/jdk-21.0.7.6-hotspot",
+    "dart.analysisExcludedFolders": [
+        "C:\\Users\\riosh\\Documents\\Energy_Monitoring\\flutter"
+    ],
+    "files.exclude": {
+        "**/android": true,
+        "**/build": true,
+        "**/flutter/packages/flutter_tools/lib/dataconnect_generated": true,
+        "flutter/.git": true,
+        "flutter/engine": true,
+        "flutter/dev": true,
+        "flutter/third_party": true,
+        "flutter/examples": true,
+        "flutter/buildtools": true
+    },
+    "search.exclude": {
+        "**/android": true,
+        "**/build": true,
+        "**/flutter/**": true
+    },
+    "terminal.integrated.env.windows": {
+        "PATH": "C:\\Program Files\\GitHub CLI;${env:PATH}"
+    },
+    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+    "terminal.integrated.profiles.windows": {
+        "Command Prompt": {
+            "path": [
+                "${env:windir}\\System32\\cmd.exe"
+            ],
+            "args": []
+        },
+        "GitHub CLI": {
+            "path": [
+                "C:\\Program Files\\GitHub CLI\\gh.exe"
+            ],
+            "args": []
+        }
+    }
+}

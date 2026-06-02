@@ -1,0 +1,1518 @@
+﻿<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--[if gte mso 9]><xml>
+<w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>90</w:Zoom>
+  <w:DoNotOptimizeForBrowser/>
+</w:WordDocument></xml><![endif]-->
+<title>Rapport de Stage PFE — Système de Supervision Énergétique KOFERT</title>
+<style>
+@page { size: 21cm 29.7cm; margin: 2.5cm 3cm 2.5cm 3cm; mso-page-orientation: portrait; }
+body { font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.8; color: #1a1a1a; }
+h1 { font-size: 20pt; text-align: center; color: #1a3a5c; margin-top: 30px; margin-bottom: 8px; mso-outline-level: 1; }
+h2 { font-size: 15pt; color: #1a3a5c; border-bottom: 2px solid #1a3a5c; padding-bottom: 4px; margin-top: 36px; mso-outline-level: 2; }
+h3 { font-size: 13pt; color: #2c5f8a; margin-top: 24px; mso-outline-level: 3; }
+h4 { font-size: 12pt; color: #2c5f8a; margin-top: 16px; mso-outline-level: 4; }
+p  { margin: 8px 0; text-align: justify; }
+ul, ol { margin: 8px 0 8px 30px; }
+li { margin-bottom: 4px; }
+code { font-family: Consolas,"Courier New",monospace; font-size: 10pt; background: #f4f4f4; }
+pre  { font-family: Consolas,"Courier New",monospace; font-size: 9.5pt; background: #f4f4f4; border-left: 4px solid #1a3a5c; padding: 12px 16px; white-space: pre-wrap; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 11pt; }
+th { background: #1a3a5c; color: white; padding: 8px 12px; text-align: left; border: 1px solid #1a3a5c; }
+td { padding: 7px 12px; border: 1px solid #ccc; }
+tr:nth-child(even) td { background: #f0f5fb; }
+.page-break { page-break-after: always; }
+.note    { background: #eaf4fb; border-left: 4px solid #2c5f8a; padding: 10px 14px; margin: 12px 0; font-size: 11pt; }
+.warning { background: #fff8e1; border-left: 4px solid #f59e0b; padding: 10px 14px; margin: 12px 0; font-size: 11pt; }
+.success { background: #f0fff4; border-left: 4px solid #2E7D32;  padding: 10px 14px; margin: 12px 0; font-size: 11pt; }
+.abstract { background: #f4f8fb; border: 1px solid #c0d4e8; padding: 18px 22px; margin: 20px 0; }
+.toc li { list-style: none; margin: 4px 0; }
+.toc a  { text-decoration: none; color: #1a3a5c; }
+.cover         { text-align: center; margin-top: 60px; page-break-after: always; }
+.cover-logo    { font-size: 36pt; font-weight: bold; color: #1a3a5c; letter-spacing: 4px; }
+.cover-title   { font-size: 20pt; font-weight: bold; color: #1a3a5c; margin-top: 40px; line-height: 1.4; }
+.cover-info    { font-size: 12pt; color: #333; margin-top: 40px; line-height: 2.2; }
+.cover-border  { border: 3px solid #1a3a5c; padding: 30px 40px; }
+.cover-subtitle{ font-size: 14pt; color: #555; margin-top: 8px; }
+.new-badge     { background: #2E7D32; color: white; padding: 1px 6px; font-size: 9pt; font-family: Arial, sans-serif; }
+.updated-badge { background: #e67e22; color: white; padding: 1px 6px; font-size: 9pt; font-family: Arial, sans-serif; }
+.badge         { background: #1a3a5c; color: white; padding: 2px 6px; font-size: 10pt; font-family: Consolas, monospace; }
+.section-number{ font-weight: bold; margin-right: 8px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ COVER PAGE -->
+<div class="cover">
+  <div class="cover-logo">OCP — KOFERT</div>
+  <div class="cover-subtitle">Groupe OCP | Site de production — Khouribga</div>
+  <hr style="border: 2px solid #1a3a5c; margin: 20px auto; width: 60%;">
+
+  <div class="cover-border">
+    <div class="cover-title">
+      Conception et Développement d'un Système de<br>
+      Supervision Énergétique Temps Réel<br>
+      basé sur Flutter Web et Firebase
+    </div>
+    <div class="cover-subtitle" style="margin-top: 16px;">
+      Projet de Fin d'Études — Stage d'Ingénierie
+    </div>
+  </div>
+
+  <div class="cover-info">
+    <strong>Réalisé par :</strong> Patrick (Stagiaire PFE)<br>
+    <strong>Encadrant entreprise :</strong> Soufiane Laghri<br>
+    <strong>Établissement :</strong> [Votre École / Université]<br>
+    <strong>Filière :</strong> Génie Informatique / Génie Électrique<br>
+    <strong>Période de stage :</strong> [Début] – Juin 2026<br>
+    <strong>URL de production :</strong> <a href="https://ocp-energy-monitor.web.app">https://ocp-energy-monitor.web.app</a>
+  </div>
+  <br><br>
+  <em style="color:#888; font-size:10pt;">Rapport de stage confidentiel — Usage interne OCP uniquement</em>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ TABLE OF CONTENTS -->
+<div class="page-break"></div>
+<h1>Table des Matières</h1>
+<ul class="toc">
+  <li><a href="#resume"><span class="section-number">0.</span> Résumé Exécutif</a></li>
+  <li><a href="#intro"><span class="section-number">1.</span> Introduction et Contexte du Projet</a></li>
+  <li><a href="#besoins"><span class="section-number">2.</span> Analyse des Besoins</a></li>
+  <li><a href="#architecture"><span class="section-number">3.</span> Architecture Globale du Système</a></li>
+  <li><a href="#hardware"><span class="section-number">4.</span> Couche Matérielle — Capteurs et Protocoles IoT</a></li>
+  <li><a href="#firebase"><span class="section-number">5.</span> Infrastructure Firebase</a></li>
+  <li><a href="#app"><span class="section-number">6.</span> Application Flutter Web — Structure et Fonctionnalités</a></li>
+  <li><a href="#security"><span class="section-number">7.</span> Sécurité et Contrôle d'Accès</a></li>
+  <li><a href="#notifications"><span class="section-number">8.</span> Système de Notifications et Rapports Automatiques</a></li>
+  <li><a href="#ia"><span class="section-number">9.</span> Module de Prédiction par Intelligence Artificielle</a></li>
+  <li><a href="#chat"><span class="section-number">10.</span> Messagerie Temps Réel et Collaboration</a></li>
+  <li><a href="#maintenance"><span class="section-number">11.</span> Gestion de la Maintenance <span class="updated-badge">ENRICHI</span></a></li>
+  <li><a href="#deployment"><span class="section-number">12.</span> Déploiement et CI/CD</a></li>
+  <li><a href="#tests"><span class="section-number">13.</span> Tests et Validation</a></li>
+  <li><a href="#difficultes"><span class="section-number">14.</span> Difficultés Rencontrées et Solutions Apportées</a></li>
+  <li><a href="#resultats"><span class="section-number">15.</span> Résultats et Bilan du Projet</a></li>
+  <li><a href="#perspectives"><span class="section-number">16.</span> Perspectives et Améliorations Futures</a></li>
+  <li><a href="#conclusion"><span class="section-number">17.</span> Conclusion Générale</a></li>
+  <li><a href="#annexes"><span class="section-number">18.</span> Annexes Techniques</a></li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════ ABSTRACT -->
+<div class="page-break"></div>
+<h1 id="resume">Résumé Exécutif</h1>
+<div class="abstract">
+<p>Ce rapport présente le développement intégral d'un système de supervision énergétique industriel temps réel, conçu et déployé pour le site KOFERT du Groupe OCP. Le projet couvre l'ensemble de la chaîne de valeur numérique : depuis la collecte des données physiques par des microcontrôleurs ESP32 et des capteurs de type PZEM-004T, en passant par leur transmission vers le cloud Firebase, jusqu'à leur visualisation dans une application web développée avec le framework Flutter.</p>
+<p>L'application, déployée en production sur Firebase Hosting à l'adresse <strong>https://ocp-energy-monitor.web.app</strong>, surveille trois unités industrielles distinctes (Lampe AC, Ventilateur DC 5V, Pompe à eau DC 5V), offre un tableau de bord temps réel, un historique exportable avec envoi par email intelligent (sélection du destinataire), des alertes paramétrables, un module de prédiction par IA, un journal de maintenance intégré avec rapport complet (problème + solution + pièce jointe), téléchargement PDF, notifications email enrichies, et un système de messagerie collaborative entre opérateurs.</p>
+<p><strong>Technologies clés :</strong> Flutter 3.x · Dart SDK ^3.11.4 · Firebase (Auth, Firestore, Realtime Database, Hosting, Cloud Functions) · EmailJS · Syncfusion · Node.js · dart:html</p>
+<p><strong>Améliorations de la version finale :</strong> dialogue email historique avec sélection d'adresse (propre compte ou autre) ; rapport de résolution de maintenance complet (problème, solution, pièce jointe) ; visualisation et téléchargement PDF des rapports ; notifications email de résolution enrichies avec section "Rapport de résolution" ; interface responsive avec <code>ConstrainedBox</code> et <code>Wrap</code>.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 1 -->
+<div class="page-break"></div>
+<h1 id="intro">1. Introduction et Contexte du Projet</h1>
+
+<h2>1.1 Présentation du Groupe OCP</h2>
+<p>Le Groupe OCP (Office Chérifien des Phosphates) est le leader mondial de l'industrie des phosphates. Fondé en 1920, il extrait, transforme et commercialise des phosphates et dérivés (acide phosphorique, engrais) à destination de marchés internationaux. Son site de Khouribga, au cœur du Maroc, constitue l'un des plus importants bassins miniers phosphatiers au monde.</p>
+<p>Dans le cadre de sa stratégie de transformation numérique et de développement durable, l'OCP investit massivement dans la digitalisation de ses processus industriels, notamment la supervision et l'optimisation de la consommation énergétique.</p>
+
+<h2>1.2 Contexte du Stage</h2>
+<p>Le présent stage de fin d'études s'inscrit dans le périmètre de l'unité de production KOFERT (Khouribga Facilities & Resources Technology). La mission confiée consistait à concevoir, développer et déployer un tableau de bord numérique complet permettant la supervision en temps réel de la consommation énergétique de trois équipements pilotes, avec gestion des alertes, rapports automatiques et journal de maintenance.</p>
+
+<h2>1.3 Objectifs du Projet</h2>
+<ul>
+  <li><strong>Visualisation temps réel</strong> : afficher les paramètres électriques (tension, courant, puissance active, facteur de puissance, énergie, fréquence) de chaque unité toutes les secondes.</li>
+  <li><strong>Alertes intelligentes</strong> : détecter automatiquement les anomalies (surtension, sous-tension, surintensité, facteur de puissance faible) et notifier par email l'ensemble des opérateurs.</li>
+  <li><strong>Historique et export</strong> : permettre la consultation des données historiques avec filtres temporels et export Excel ou email.</li>
+  <li><strong>Prédiction IA</strong> : estimer la consommation et les coûts futurs par régression linéaire sur les données historiques.</li>
+  <li><strong>Maintenance</strong> : gérer un journal des interventions techniques avec assignation de responsabilités et notifications automatiques.</li>
+  <li><strong>Collaboration</strong> : offrir un espace de messagerie interne (chat global et messages directs) entre les membres de l'équipe technique.</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 2 -->
+<div class="page-break"></div>
+<h1 id="besoins">2. Analyse des Besoins</h1>
+
+<h2>2.1 Besoins Fonctionnels</h2>
+<table>
+  <tr><th>Identifiant</th><th>Besoin</th><th>Priorité</th></tr>
+  <tr><td>BF-01</td><td>Tableau de bord temps réel avec jauges et graphiques</td><td>Critique</td></tr>
+  <tr><td>BF-02</td><td>Multi-unités : 3 équipements distincts avec switching</td><td>Critique</td></tr>
+  <tr><td>BF-03</td><td>Historique des mesures avec filtrage par date et export</td><td>Haute</td></tr>
+  <tr><td>BF-04</td><td>Système d'alertes paramétrables avec email</td><td>Haute</td></tr>
+  <tr><td>BF-05</td><td>Prédiction de consommation et de coûts</td><td>Moyenne</td></tr>
+  <tr><td>BF-06</td><td>Résumé journalier et mensuel</td><td>Moyenne</td></tr>
+  <tr><td>BF-07</td><td>Comparaison des 3 unités simultanément</td><td>Moyenne</td></tr>
+  <tr><td>BF-08</td><td>Contrôle actif (vitesse ventilateur, pompe ON/OFF)</td><td>Haute</td></tr>
+  <tr><td>BF-09</td><td>Journal de maintenance avec assignation et notifications</td><td>Haute</td></tr>
+  <tr><td>BF-10</td><td>Messagerie interne (chat global + messages directs)</td><td>Basse</td></tr>
+  <tr><td>BF-11</td><td>Rapports automatiques périodiques par email</td><td>Moyenne</td></tr>
+  <tr><td>BF-12</td><td>Gestion des profils utilisateurs et des rôles</td><td>Haute</td></tr>
+  <tr><td>BF-13</td><td>Envoi email historique avec sélection "Mon email / Autre adresse"</td><td>Moyenne</td></tr>
+  <tr><td>BF-14</td><td>Rapport de résolution maintenance (problème + solution + pièce jointe) et téléchargement PDF</td><td>Haute</td></tr>
+</table>
+
+<h2>2.2 Besoins Non-Fonctionnels</h2>
+<ul>
+  <li><strong>Performance</strong> : latence de mise à jour inférieure à 2 secondes pour les données temps réel.</li>
+  <li><strong>Disponibilité</strong> : hébergement cloud avec disponibilité 99,9 % (SLA Firebase).</li>
+  <li><strong>Sécurité</strong> : authentification obligatoire, contrôle d'accès par rôles (RBAC), règles Firestore.</li>
+  <li><strong>Accessibilité</strong> : interface web responsive, support des navigateurs modernes (Chrome, Edge, Firefox).</li>
+  <li><strong>Internationalisation</strong> : support trilingue Français / Anglais / Arabe.</li>
+  <li><strong>Mode hors-ligne</strong> : affichage des dernières données en cache si Firebase est injoignable.</li>
+</ul>
+
+<h2>2.3 Utilisateurs Cibles et Rôles</h2>
+<table>
+  <tr><th>Rôle</th><th>Profil</th><th>Droits principaux</th></tr>
+  <tr><td><code>admin</code></td><td>Administrateur système</td><td>Tous les droits : lecture, écriture, suppression, gestion des rôles</td></tr>
+  <tr><td><code>moderator</code></td><td>Superviseur</td><td>Lecture + écriture + modification des rôles (sauf admin)</td></tr>
+  <tr><td><code>operator</code></td><td>Technicien opérateur</td><td>Lecture + création d'alertes et de tâches de maintenance</td></tr>
+  <tr><td><code>observer</code></td><td>Observateur</td><td>Lecture seule + validation de tâches de maintenance assignées</td></tr>
+  <tr><td><code>viewer</code></td><td>Visiteur</td><td>Lecture seule (données de supervision)</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 3 -->
+<div class="page-break"></div>
+<h1 id="architecture">3. Architecture Globale du Système</h1>
+
+<h2>3.1 Diagramme d'Architecture</h2>
+<p>Le système est organisé en quatre couches distinctes :</p>
+
+<pre>
+┌─────────────────────────────────────────────────────────────────────┐
+│  COUCHE MATÉRIELLE (IoT)                                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
+│  │ KOFERT_Unit_1│  │ KOFERT_Unit_2│  │ KOFERT_Unit_3            │  │
+│  │ Lampe 220V AC│  │ Ventilateur  │  │ Pompe à eau + réservoir  │  │
+│  │ PZEM-004T    │  │ DC 5V + Potm.│  │ DC 5V + capteur niveau   │  │
+│  │ ESP32        │  │ ESP32        │  │ ESP32                    │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────────┘  │
+└─────────┼────────────────┼───────────────────────┼─────────────────┘
+          │   MQTT / HTTP / Wi-Fi                  │
+          ▼                ▼                        ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  COUCHE CLOUD — Firebase                                            │
+│  ┌──────────────────────────┐   ┌─────────────────────────────────┐│
+│  │ Realtime Database        │   │ Cloud Firestore                 ││
+│  │ /{unitId}/current_metrics│   │ sensor_readings/ (time-series)  ││
+│  │ /{unitId}/historical_data│   │ unit_status/ (snapshot)         ││
+│  │ /users/{uid}/presence    │   │ users/ (profils + rôles)        ││
+│  │                          │   │ maintenance_logs/               ││
+│  │                          │   │ alerts/                         ││
+│  │                          │   │ global_chat/                    ││
+│  │                          │   │ dm_chats/                       ││
+│  │                          │   │ config/autoReport               ││
+│  └──────────────────────────┘   └─────────────────────────────────┘│
+│  ┌───────────────────┐  ┌──────────────┐  ┌──────────────────────┐ │
+│  │ Firebase Auth     │  │ Cloud Funct. │  │ Firebase Hosting     │ │
+│  │ Email+Password    │  │ Rapports     │  │ ocp-energy-monitor   │ │
+│  │ Email Verification│  │ planifiés    │  │ .web.app             │ │
+│  └───────────────────┘  └──────────────┘  └──────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  COUCHE APPLICATION — Flutter Web                                   │
+│  Dashboard │ Historique │ Résumé │ Alertes │ Comparaison           │
+│  Maintenance │ Chat │ Profil │ Paramètres                           │
+└─────────────────────────────────────────────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  COUCHE NOTIFICATION — EmailJS                                      │
+│  service_1tovyp1 │ template_9cy6uou │ Clé publique sécurisée       │
+└─────────────────────────────────────────────────────────────────────┘
+</pre>
+
+<h2>3.2 Flux de Données Temps Réel</h2>
+<p>Le flux de données suit le chemin suivant :</p>
+<ol>
+  <li>L'ESP32 lit les capteurs (PZEM-004T via UART / ADC) toutes les secondes.</li>
+  <li>Il pousse un objet JSON vers le nœud <code>/{unitId}/current_metrics</code> de Firebase Realtime Database via le SDK Firebase pour Arduino.</li>
+  <li>L'application Flutter écoute ce nœud avec un <strong>stream temps réel</strong> (<code>onValue</code>). Chaque événement déclenche une mise à jour de l'interface.</li>
+  <li>En parallèle, le service <code>FirestoreLogService</code> persiste les données dans Firestore (throttlé à 1 écriture/min/unité pour optimiser les coûts).</li>
+  <li>Le service <code>EnergyRepository</code> met également en cache la dernière lecture dans <code>SharedPreferences</code> (mode hors-ligne).</li>
+</ol>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 4 -->
+<div class="page-break"></div>
+<h1 id="hardware">4. Couche Matérielle — Capteurs et Protocoles IoT</h1>
+
+<h2>4.1 Unités de Mesure</h2>
+
+<h3>KOFERT_Unit_1 — Lampe 220V AC</h3>
+<p>Cette unité surveille un équipement à courant alternatif (220V, 50Hz). Elle utilise le capteur <strong>PZEM-004T</strong>, un module de mesure d'énergie AC complet, interfacé avec un <strong>microcontrôleur ESP32</strong> via liaison UART.</p>
+<p><strong>Paramètres mesurés :</strong></p>
+<ul>
+  <li>Tension réseau (V) — plage : 80–260V</li>
+  <li>Courant (A) — plage : 0–100A</li>
+  <li>Puissance active (W)</li>
+  <li>Énergie cumulée (mWh)</li>
+  <li>Facteur de puissance (0.0–1.0)</li>
+  <li>Fréquence réseau (Hz) — nominale 50Hz</li>
+</ul>
+
+<h3>KOFERT_Unit_2 — Ventilateur DC 5V</h3>
+<p>Équipement à courant continu. Un potentiomètre connecté au convertisseur analogique-numérique (ADC) de l'ESP32 permet de lire et d'envoyer la vitesse de rotation sous forme de pourcentage (0–100 %). Le tableau de bord peut également envoyer une commande de vitesse cible via Firebase, que l'ESP32 lit et applique via PWM.</p>
+<p><strong>Paramètres mesurés :</strong> Tension DC (V), Courant DC (mA), Vitesse ventilateur (%), Puissance (mW).</p>
+
+<h3>KOFERT_Unit_3 — Pompe à eau DC 5V avec réservoir</h3>
+<p>Pompe hydraulique DC avec un capteur de niveau d'eau analogique. L'ESP32 lit le niveau du réservoir (0–100 %) et reçoit des commandes ON/OFF pour la pompe via Firebase Realtime Database.</p>
+<p><strong>Paramètres mesurés :</strong> Tension DC (V), Courant DC (mA), Niveau eau (%), État pompe (ON/OFF).</p>
+
+<h2>4.2 Contrôle Bidirectionnel</h2>
+<p>Le tableau de bord ne se contente pas d'afficher des données — il permet aussi d'<strong>agir sur les équipements</strong> en temps réel :</p>
+<ul>
+  <li><strong>Vitesse du ventilateur</strong> : un curseur dans le dashboard écrit la valeur dans <code>KOFERT_Unit_2/fan_control</code> de la Realtime DB. L'ESP32 lit ce nœud et ajuste le signal PWM.</li>
+  <li><strong>Commande pompe</strong> : un bouton ON/OFF écrit <code>KOFERT_Unit_3/pump_control</code>. L'ESP32 active ou désactive le relais.</li>
+</ul>
+
+<h2>4.3 Format du Payload JSON (ESP32 → Firebase)</h2>
+<pre>
+{
+  "voltage": 228.5,
+  "current": 0.43,
+  "power": 98.2,
+  "energy": 12450.0,
+  "powerFactor": 0.97,
+  "frequency": 50.01,
+  "timestamp": 1748600000000
+}
+</pre>
+<p>Pour l'Unité 2, on ajoute <code>"windSpeed": 72.0</code> ; pour l'Unité 3, <code>"waterLevel": 65</code> et <code>"pumpStatus": "ON"</code>.</p>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 5 -->
+<div class="page-break"></div>
+<h1 id="firebase">5. Infrastructure Firebase</h1>
+
+<h2>5.1 Firebase Realtime Database</h2>
+<p>Utilisée pour les données <strong>temps réel strictement</strong> : mesures courantes, historique brut et présence utilisateur. Sa faible latence (< 100ms) la rend idéale pour les mises à jour à la seconde.</p>
+<p><strong>Structure des nœuds :</strong></p>
+<pre>
+root
+├── KOFERT_Unit_1/
+│   ├── current_metrics/       ← lecture live, écrasé à chaque cycle
+│   └── historical_data/       ← clés timestamp, valeurs JSON mesure
+├── KOFERT_Unit_2/ (idem)
+├── KOFERT_Unit_3/ (idem)
+└── users/{uid}/presence/
+    ├── status: "online" | "offline" | "dnd"
+    └── lastSeen: serverTimestamp
+</pre>
+
+<h2>5.2 Cloud Firestore</h2>
+<p>Utilisé pour les données <strong>persistantes et structurées</strong> : lectures horodatées, profils utilisateurs, logs de maintenance, chat, alertes, configuration.</p>
+<p><strong>Collections principales :</strong></p>
+<table>
+  <tr><th>Collection</th><th>Contenu</th><th>Fréquence d'écriture</th></tr>
+  <tr><td><code>sensor_readings</code></td><td>Time-series 1 doc/min/unité (throttlé)</td><td>~180 docs/heure</td></tr>
+  <tr><td><code>unit_status</code></td><td>Snapshot instantané par unité (3 docs)</td><td>1/min/unité</td></tr>
+  <tr><td><code>users</code></td><td>Profil, rôle, avatar, poste, customId</td><td>À la demande</td></tr>
+  <tr><td><code>maintenance_logs</code></td><td>Tâches de maintenance avec statut</td><td>À la demande</td></tr>
+  <tr><td><code>alerts</code></td><td>Alertes système déclenchées</td><td>Sur événement</td></tr>
+  <tr><td><code>global_chat</code></td><td>Messages chat global</td><td>À la demande</td></tr>
+  <tr><td><code>dm_chats/{id}/messages</code></td><td>Messages privés entre deux utilisateurs</td><td>À la demande</td></tr>
+  <tr><td><code>config/autoReport</code></td><td>Config rapports automatiques (enabled, frequency)</td><td>Rare</td></tr>
+</table>
+
+<h2>5.3 Firebase Authentication</h2>
+<p>L'authentification repose sur le fournisseur <strong>Email + Mot de passe</strong> de Firebase Auth, avec :</p>
+<ul>
+  <li><strong>Vérification d'email obligatoire</strong> : l'application redirige vers un écran de confirmation si l'email n'est pas vérifié.</li>
+  <li><strong>Persistance de session</strong> configurée selon le type de client (<code>Persistence.LOCAL</code> pour les navigateurs de bureau, <code>Persistence.SESSION</code> pour les accès mobile).</li>
+  <li><strong>Réinitialisation du mot de passe</strong> via l'email Firebase.</li>
+  <li><strong>Modification du mot de passe</strong> avec re-authentification obligatoire.</li>
+</ul>
+
+<h2>5.4 Cloud Functions (Node.js)</h2>
+<p>Trois fonctions serverless déployées sur Firebase Cloud Functions (runtime Node.js 20) pour l'envoi de rapports périodiques par email :</p>
+<table>
+  <tr><th>Fonction</th><th>Déclencheur</th><th>Fréquence</th></tr>
+  <tr><td><code>sendDailyReport</code></td><td>PubSub schedule</td><td>Tous les jours à 7h00 (Maroc)</td></tr>
+  <tr><td><code>sendWeeklyReport</code></td><td>PubSub schedule</td><td>Chaque lundi à 7h00</td></tr>
+  <tr><td><code>sendMonthlyReport</code></td><td>PubSub schedule</td><td>1er de chaque mois à 7h00</td></tr>
+</table>
+<p>Chaque fonction :</p>
+<ol>
+  <li>Lit la configuration dans <code>config/autoReport</code> (clé <code>enabled</code>). Si désactivé, sort silencieusement.</li>
+  <li>Collecte les emails de tous les utilisateurs depuis la collection <code>users</code>.</li>
+  <li>Appelle l'API EmailJS avec la clé privée stockée dans <strong>Google Secret Manager</strong> (secret <code>EMAILJS_PRIVATE_KEY</code>).</li>
+</ol>
+
+<h2>5.5 Firebase Hosting</h2>
+<p>L'application compilée Flutter Web est déployée sur Firebase Hosting avec les configurations suivantes :</p>
+<ul>
+  <li><strong>Single Page App</strong> : toutes les routes redirigent vers <code>index.html</code> (règle <code>rewrites</code>).</li>
+  <li><strong>Clean URLs</strong> : option <code>cleanUrls: true</code> pour des URLs sans extension <code>.html</code>.</li>
+  <li><strong>Rotation automatique</strong> : <code>maxVersions: 1</code> — l'ancienne version est automatiquement supprimée à chaque nouveau déploiement.</li>
+  <li><strong>URL de production</strong> : <code>https://ocp-energy-monitor.web.app</code></li>
+</ul>
+
+<h2>5.6 Firebase Data Connect (Schéma GraphQL)</h2>
+<p>Un schéma de base de données relationnel a également été défini avec Firebase Data Connect (PostgreSQL), couvrant les entités <code>EnergyUnit</code>, <code>EnergyMetric</code> et <code>EnergyAlert</code>, pour une future migration vers une base relationnelle si les volumes de données l'exigent.</p>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 6 -->
+<div class="page-break"></div>
+<h1 id="app">6. Application Flutter Web — Structure et Fonctionnalités</h1>
+
+<h2>6.1 Choix Technologique : Flutter Web</h2>
+<p>Flutter (version 3.x, Dart SDK ^3.11.4) a été choisi pour les raisons suivantes :</p>
+<ul>
+  <li><strong>Compilation native Web</strong> : génère du JavaScript optimisé (CanvasKit renderer) pour une performance proche du natif.</li>
+  <li><strong>Single codebase</strong> : le même code peut cibler Web, Android, iOS, Desktop.</li>
+  <li><strong>Widgets riches</strong> : système de widgets entièrement personnalisables sans dépendance CSS.</li>
+  <li><strong>Écosystème Firebase</strong> : SDK Flutter Firebase complet et bien maintenu.</li>
+  <li><strong>Syncfusion</strong> : bibliothèque de composants de visualisation de données (jauges, graphiques) de haute qualité.</li>
+</ul>
+
+<h2>6.2 Structure du Projet</h2>
+<pre>
+kofert_dashboard/lib/
+├── main.dart                    ← Point d'entrée, notifiers globaux, thème
+├── firebase_options.dart        ← Config Firebase auto-générée
+├── models/
+│   ├── energy_data.dart         ← Modèle de mesure énergétique
+│   ├── alert_entry.dart         ← Modèle d'entrée d'alerte
+│   └── chat_message.dart        ← Modèle de message chat
+├── screens/
+│   ├── login_screen.dart        ← Authentification + QR Code
+│   ├── verify_email_screen.dart ← Confirmation email
+│   ├── dashboard_screen.dart    ← Tableau de bord principal
+│   ├── historical_screen.dart   ← Données historiques + IA
+│   ├── summary_screen.dart      ← Résumés journalier/mensuel
+│   ├── alert_history_screen.dart← Journal des alertes
+│   ├── comparison_screen.dart   ← Comparaison multi-unités
+│   ├── maintenance_screen.dart  ← Journal de maintenance
+│   ├── chat_screen.dart         ← Messagerie temps réel
+│   ├── settings_screen.dart     ← Paramètres utilisateur
+│   └── profile_screen.dart      ← Profil et gestion de compte
+├── services/
+│   ├── energy_repository.dart   ← Abstraction Realtime DB + cache
+│   ├── firestore_log_service.dart← Persistence Firestore throttlée
+│   ├── alert_notification_service.dart ← Notifications email alertes/maintenance
+│   ├── auto_report_service.dart ← Rapports automatiques côté client
+│   ├── energy_predictor.dart    ← Module IA de prédiction
+│   └── presence_service.dart   ← Présence utilisateur temps réel
+├── theme/
+│   ├── app_theme.dart           ← ThemeData light/dark
+│   └── app_colors.dart         ← Palette de couleurs adaptive
+├── l10n/
+│   └── app_strings.dart         ← Traductions FR/EN/AR
+├── utils/
+│   └── energy_format.dart       ← Formatage des unités
+└── widgets/
+    └── user_avatar.dart         ← Widget avatar utilisateur
+</pre>
+
+<h2>6.3 État Global de l'Application</h2>
+<p>L'application utilise le pattern <strong>ValueNotifier</strong> (sans gestionnaire d'état externe) pour les données partagées entre écrans :</p>
+<pre>
+// main.dart — notifiers globaux
+final themeNotifier         = ValueNotifier&lt;ThemeMode&gt;(ThemeMode.dark);
+final alertLogNotifier      = ValueNotifier&lt;List&lt;AlertEntry&gt;&gt;([]);
+final selectedUnitNotifier  = ValueNotifier&lt;String&gt;('KOFERT_Unit_1');
+final roleNotifier          = ValueNotifier&lt;String&gt;('viewer');
+final browserNotifNotifier  = ValueNotifier&lt;bool&gt;(false);
+final languageNotifier      = ValueNotifier&lt;String&gt;('fr');
+</pre>
+
+<h2>6.4 Tableau de Bord (Dashboard)</h2>
+<p>L'écran principal est le cœur de l'application. Il affiche en temps réel :</p>
+<ul>
+  <li><strong>6 jauges radiales Syncfusion</strong> (puissance, tension, courant, facteur de puissance, énergie, fréquence) avec code couleur thresholded.</li>
+  <li><strong>Graphique temps réel</strong> (SplineSeries) des 60 dernières secondes, switchable entre Puissance / Tension / Courant / Énergie / Facteur de puissance.</li>
+  <li><strong>Panneau d'informations droit</strong> : date/heure en direct, coût estimé, état de connexion, indicateur "En direct" animé.</li>
+  <li><strong>Compteur d'alertes actives</strong> avec badge rouge dynamique.</li>
+  <li><strong>Contrôles actifs</strong> : curseur de vitesse du ventilateur (Unité 2) et bouton ON/OFF pompe (Unité 3) avec confirmation visuelle.</li>
+  <li><strong>Sélection d'unité</strong> : 3 boutons permettant de passer d'une unité à l'autre.</li>
+  <li><strong>Mode hors-ligne</strong> : affichage d'un bandeau orange et des données en cache si Firebase est injoignable.</li>
+</ul>
+<p>Le flux de données utilise <code>EnergyRepository.instance.currentMetrics(unitId)</code> — un stream Dart qui émet un objet <code>EnergyData</code> à chaque notification Firebase.</p>
+
+<h2>6.5 Écran Historique <span class="updated-badge">ENRICHI</span></h2>
+<p>Cet écran permet d'explorer les données passées avec :</p>
+<ul>
+  <li><strong>Graphique interactif Syncfusion</strong> avec zoom, trackball et tooltip, pour les métriques : puissance, tension, courant, énergie, facteur de puissance.</li>
+  <li><strong>Filtres date/heure</strong> (start/end) avec DatePicker.</li>
+  <li><strong>Sélection d'unité</strong> incluant une vue "Toutes unités" avec superposition des courbes.</li>
+  <li><strong>Export Excel</strong> : génération d'un fichier .xlsx (bibliothèque <code>excel</code>) téléchargeable directement depuis le navigateur.</li>
+  <li><strong>Envoi par email intelligent</strong> via EmailJS : sélection entre "Mon email" (compte connecté) ou "Autre adresse" — voir section 6.5.1.</li>
+  <li><strong>Module IA</strong> : calcul et affichage des prédictions de coût et de facteur de puissance.</li>
+</ul>
+
+<h3>6.5.1 Dialogue d'Envoi par Email — Sélection Intelligente du Destinataire <span class="new-badge">NOUVEAU</span></h3>
+<p>Le dialogue <code>_showSendEmailDialog()</code> a été enrichi pour détecter automatiquement si l'utilisateur est connecté et proposer deux options :</p>
+<ul>
+  <li><strong>Option 1 — "Mon email"</strong> (bouton radio, sélectionné par défaut) : utilise l'adresse email du compte Firebase actuellement connecté, récupérée via <code>FirebaseAuth.instance.currentUser?.email</code>. L'email est affiché sous le label pour confirmation.</li>
+  <li><strong>Option 2 — "Autre adresse email"</strong> (bouton radio) : affiche un champ de saisie <code>TextField</code> en mode email, avec focus automatique.</li>
+  <li><strong>Fallback</strong> : si aucun utilisateur n'est connecté (session expirée), seul le champ de saisie libre s'affiche.</li>
+</ul>
+<pre>
+// historical_screen.dart — extrait du dialogue email
+void _showSendEmailDialog() {
+  final currentUser = FirebaseAuth.instance.currentUser;
+  final myEmail     = currentUser?.email ?? '';
+  bool  sendToSelf  = myEmail.isNotEmpty;    // pré-sélectionne "Mon email"
+  final emailController = TextEditingController();
+
+  showDialog&lt;void&gt;(
+    context: context,
+    builder: (ctx) =&gt; StatefulBuilder(
+      builder: (ctx, setLocal) {
+        return AlertDialog(
+          content: Column(children: [
+            if (myEmail.isNotEmpty) ...[
+              // Radio "Mon email" (pré-sélectionné, email affiché en dessous)
+              Radio&lt;bool&gt;(value: true, groupValue: sendToSelf,
+                activeColor: kTeal,
+                onChanged: (v) =&gt; setLocal(() =&gt; sendToSelf = v!)),
+              // Radio "Autre adresse email"
+              Radio&lt;bool&gt;(value: false, groupValue: sendToSelf,
+                activeColor: kTeal,
+                onChanged: (v) =&gt; setLocal(() =&gt; sendToSelf = v!)),
+              if (!sendToSelf)
+                TextField(controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  autofocus: true, ...),
+            ] else ...[
+              TextField(controller: emailController, ...),  // fallback
+            ],
+          ]),
+          actions: [
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kTeal,
+                foregroundColor: Colors.black87,  // ✦ correction lisibilité
+              ),
+              onPressed: () async {
+                final email = sendToSelf ? myEmail : emailController.text.trim();
+                Navigator.pop(ctx);
+                await _sendByEmail(email);
+              },
+              label: const Text('Envoyer'),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
+</pre>
+<div class="note">
+  <strong>Note technique :</strong> La correction <code>foregroundColor: Colors.black87</code> était nécessaire car <code>kTeal</code> (<code>#4ECDC4</code>, menthe clair) est une couleur de surface claire — le texte blanc de Flutter par défaut était invisible sur ce fond.
+</div>
+
+<h2>6.6 Écran Résumé</h2>
+<p>Présente des agrégations sur deux onglets :</p>
+<ul>
+  <li><strong>Résumé journalier</strong> : consommation (kWh/mWh), coût (MAD) et puissance moyenne par jour, sous forme de tableau et barres Syncfusion.</li>
+  <li><strong>Résumé mensuel</strong> : même données agrégées par mois.</li>
+</ul>
+<p>Le tarif énergétique est paramétrable dans l'écran Paramètres et lu depuis <code>SharedPreferences</code>.</p>
+
+<h2>6.7 Écran de Comparaison</h2>
+<p>Affiche simultanément les 3 unités sur 3 graphiques indépendants (Puissance, Tension, Courant), chaque unité ayant sa propre couleur. Permet de détecter rapidement les disparités de consommation entre équipements.</p>
+
+<h2>6.8 Écran Alertes</h2>
+<p>Journal scrollable de toutes les alertes déclenchées pendant la session courante, avec :</p>
+<ul>
+  <li>Titre, détail, unité concernée, horodatage.</li>
+  <li>Bouton "Effacer tout" pour vider le log de la session.</li>
+  <li>Indicateur visuel coloré par type d'alerte.</li>
+</ul>
+<p><strong>Types d'alertes paramétrables :</strong></p>
+<table>
+  <tr><th>Type</th><th>Condition</th><th>Seuil par défaut</th></tr>
+  <tr><td>Facteur de puissance bas</td><td>PF &lt; seuil</td><td>0.80</td></tr>
+  <tr><td>Surtension</td><td>Tension &gt; seuil haut</td><td>250V</td></tr>
+  <tr><td>Sous-tension</td><td>Tension &lt; seuil bas</td><td>200V</td></tr>
+  <tr><td>Surintensité</td><td>Courant &gt; seuil max</td><td>50A</td></tr>
+</table>
+<p>Chaque alerte est également persistée dans la collection Firestore <code>alerts</code> et envoie un email à tous les utilisateurs (throttlé à 1 email / alerte / 5 minutes).</p>
+
+<h2>6.9 Écran Paramètres</h2>
+<p>Permet à l'utilisateur de configurer :</p>
+<ul>
+  <li><strong>Thème</strong> : clair, sombre, système.</li>
+  <li><strong>Langue</strong> : Français, Anglais, Arabe (RTL).</li>
+  <li><strong>Unité par défaut</strong> (Unit 1 / 2 / 3).</li>
+  <li><strong>Tarif électrique</strong> (MAD/kWh) pour les estimations de coût.</li>
+  <li><strong>Seuils d'alertes</strong> (tension haute/basse, courant max, PF min).</li>
+  <li><strong>Unités d'affichage</strong> : mW/W/kW, mA/A, mV/V, mWh/Wh/kWh.</li>
+  <li><strong>Intervalle de rafraîchissement</strong> (1s, 5s, 30s).</li>
+  <li><strong>Notifications navigateur</strong> (Web Push API).</li>
+  <li><strong>Rapports automatiques</strong> : activation et fréquence (quotidien, hebdomadaire).</li>
+</ul>
+<p>Tous les paramètres sont persistés localement via <code>SharedPreferences</code>.</p>
+
+<h2>6.10 Écran Profil</h2>
+<p>Permet à chaque utilisateur de gérer son compte :</p>
+<ul>
+  <li>Modification du nom d'affichage, prénom, nom, poste, identifiant personnalisé.</li>
+  <li>Avatar avec sélection de couleur ou upload d'image (encodée en Base64 dans Firestore).</li>
+  <li>Changement de mot de passe avec re-authentification obligatoire.</li>
+  <li>Gestion du statut de présence (En ligne / Occupé / Hors-ligne).</li>
+  <li>QR Code personnel pour partager le profil (bibliothèque <code>qr_flutter</code>).</li>
+  <li>Visualisation du rôle attribué.</li>
+  <li>Gestion des invitations en attente.</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 7 -->
+<div class="page-break"></div>
+<h1 id="security">7. Sécurité et Contrôle d'Accès</h1>
+
+<h2>7.1 Architecture RBAC (Role-Based Access Control)</h2>
+<p>Le contrôle d'accès est implémenté à deux niveaux :</p>
+<ol>
+  <li><strong>Côté application (Flutter)</strong> : le <code>roleNotifier</code> est chargé depuis Firestore à la connexion. Les boutons d'action (ajout de maintenance, contrôles, paramètres admin) sont masqués conditionnellement selon le rôle.</li>
+  <li><strong>Côté serveur (Firestore Security Rules)</strong> : même si un attaquant contournait l'UI, les règles Firestore bloquent toute opération non autorisée.</li>
+</ol>
+
+<h2>7.2 Règles Firestore — Extraits Clés</h2>
+<pre>
+function isSignedIn() { return request.auth != null; }
+function role() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role; }
+function isAdmin()    { return isSignedIn() &amp;&amp; role() == 'admin'; }
+function isOperator() { return isSignedIn() &amp;&amp; role() in ['admin', 'moderator', 'operator']; }
+function isAnyUser()  { return isSignedIn() &amp;&amp; role() in ['admin','moderator','operator','observer','viewer']; }
+
+// maintenance_logs
+allow create: if isOperator()
+  &amp;&amp; request.resource.data.keys().hasAll(['unitId','type','technicianName','timestamp','createdBy']);
+allow update: if isOperator()
+  || (isAnyUser() &amp;&amp; resource.data.get('assignedToUid','') == request.auth.uid);
+
+// users — protection du champ 'role'
+allow update: if (isSignedIn() &amp;&amp; request.auth.uid == userId
+    &amp;&amp; !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+  || isModerator() || isAdmin();
+</pre>
+
+<h2>7.3 Gestion des Clés Secrètes</h2>
+<ul>
+  <li>La clé <strong>privée EmailJS</strong> est stockée dans <strong>Google Secret Manager</strong> (secret <code>EMAILJS_PRIVATE_KEY</code>), accessible uniquement par les Cloud Functions avec IAM dédié. Elle n'apparaît jamais dans le code source.</li>
+  <li>La clé <strong>publique EmailJS</strong> est intégrée dans le code Flutter client (<code>mD7lZMFFUPuDZlNRf</code>) — c'est une clé de domaine, non secrète par nature.</li>
+  <li>La clé a été <strong>tournée</strong> en cours de projet : l'ancienne version a été détruite dans Secret Manager, et tous les fichiers l'utilisant ont été mis à jour simultanément.</li>
+</ul>
+
+<h2>7.4 Sécurité de l'Authentification</h2>
+<ul>
+  <li>Vérification d'email obligatoire avant accès à l'application.</li>
+  <li>Persistance de session <code>LOCAL</code> sur desktop, <code>SESSION</code> sur mobile (prévient les sessions orphelines).</li>
+  <li>Re-authentification exigée pour le changement de mot de passe.</li>
+  <li>Aucune donnée sensible dans les tokens JWT Firebase.</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 8 -->
+<div class="page-break"></div>
+<h1 id="notifications">8. Système de Notifications et Rapports Automatiques</h1>
+
+<h2>8.1 Service de Notification Email (AlertNotificationService)</h2>
+<p>La classe <code>AlertNotificationService</code> (singleton) centralise tous les envois d'email de l'application. Elle utilise l'API REST d'<strong>EmailJS</strong> via le package <code>http</code>.</p>
+
+<h3>8.1.1 Configuration EmailJS</h3>
+<table>
+  <tr><th>Paramètre</th><th>Valeur</th></tr>
+  <tr><td>Service ID</td><td><code>service_1tovyp1</code></td></tr>
+  <tr><td>Template ID</td><td><code>template_9cy6uou</code></td></tr>
+  <tr><td>Public Key</td><td><code>mD7lZMFFUPuDZlNRf</code></td></tr>
+</table>
+<p><strong>Paramètres du template :</strong> <code>name</code>, <code>time</code>, <code>to_email</code>, <code>subject</code>, <code>message</code> (HTML non-échappé via <code>{{{message}}}</code>).</p>
+
+<h3>8.1.2 Design System des Emails — En-têtes et Pieds de Page Distinctifs</h3>
+<p>Chaque type de notification possède un en-tête et un pied de page HTML exclusifs, construits avec une mise en page en tableau (<code>&lt;table&gt;</code>) pour une compatibilité maximale avec les clients mail. L'en-tête suit une structure en trois colonnes : icône type · titre + sous-titre · branding <strong>⚡ KOFERT JFC3</strong> aligné à droite.</p>
+<table>
+  <tr><th>Type</th><th>Couleur principale</th><th>Icône</th><th>Titre</th><th>Pied de page</th></tr>
+  <tr><td>Rapport Énergétique</td><td><code>#0D47A1</code> (bleu marine)</td><td>📊</td><td>Rapport Énergétique KOFERT</td><td>Fond <code>#e8f0fe</code>, lien vers le tableau de bord</td></tr>
+  <tr><td>Alerte Détectée</td><td><code>#C62828</code> (rouge foncé)</td><td>⚠️</td><td>Alerte Détectée</td><td>Encadré d'action orange + fond <code>#fff5f5</code></td></tr>
+  <tr><td>Maintenance Assignée</td><td><code>#1565C0</code> (bleu)</td><td>🔧</td><td>Tâche de Maintenance Assignée</td><td>Fond <code>#eef4ff</code></td></tr>
+  <tr><td>Maintenance Résolue</td><td><code>#2E7D32</code> (vert)</td><td>✅</td><td>Tâche de Maintenance Résolue</td><td>Fond <code>#e8f5e9</code></td></tr>
+</table>
+<p>Ce design ne nécessite aucune modification du template EmailJS : toute la mise en forme est injectée dans le paramètre <code>message</code> en HTML.</p>
+
+<h3>8.1.3 Alerte Système — Diffusion à tous les utilisateurs</h3>
+<p>Méthode <code>sendAlertToAllUsers(title, detail, unitId)</code> :</p>
+<ol>
+  <li>Vérification du throttle (SharedPreferences) : si le même type d'alerte a déjà été envoyé dans les 5 dernières minutes, la méthode retourne immédiatement.</li>
+  <li>Collecte de tous les emails depuis la collection Firestore <code>users</code>.</li>
+  <li>Envoi parallèle (fire-and-forget) à chaque adresse avec un corps HTML à en-tête rouge foncé (<code>#C62828</code>), un encadré d'action et un pied de page coloré.</li>
+</ol>
+
+<h3>8.1.4 Email d'Assignation de Maintenance</h3>
+<p>Méthode <code>sendMaintenanceAssignedEmail({assignedUid, taskType, unitId, description, assignedByName})</code> :</p>
+<ol>
+  <li>Récupère le document utilisateur <code>users/{assignedUid}</code> dans Firestore.</li>
+  <li>Extrait l'email de l'utilisateur assigné.</li>
+  <li>Envoie un email individuel avec un corps HTML à en-tête bleu professionnel (<code>#1565C0</code>) avec icône 🔧, listant le type de tâche, l'unité, la description, le nom de l'assigneur et la date/heure.</li>
+</ol>
+
+<h3>8.1.5 Email de Résolution de Tâche — Enrichi avec Rapport <span class="new-badge">NOUVEAU</span></h3>
+<p>Méthode <code>sendMaintenanceResolvedToAll({taskType, unitId, description, resolvedByName, resolutionProblem, resolutionSolution})</code> :</p>
+<ul>
+  <li>Pas de throttle : la résolution est une action délibérée, non répétée.</li>
+  <li>Collecte tous les emails (même logique que sendAlertToAllUsers).</li>
+  <li>Si <code>resolutionProblem</code> ou <code>resolutionSolution</code> est non-vide, injecte une section "Rapport de résolution" colorée dans le corps de l'email.</li>
+</ul>
+<pre>
+// alert_notification_service.dart — signature mise à jour
+Future&lt;void&gt; sendMaintenanceResolvedToAll({
+  required String taskType,
+  required String unitId,
+  required String description,
+  required String resolvedByName,
+  String resolutionProblem  = '',   // ← nouveau (optionnel)
+  String resolutionSolution = '',   // ← nouveau (optionnel)
+}) async { ... }
+</pre>
+<p>La section "Rapport de résolution" est injectée <strong>conditionnellement</strong> entre le tableau de métadonnées et le pied de page, avec deux lignes colorées :</p>
+<pre>
+// alert_notification_service.dart — extrait _buildMaintenanceResolvedHtml()
+final hasReport = resolutionProblem.isNotEmpty || resolutionSolution.isNotEmpty;
+final reportSection = hasReport ? '''
+&lt;div style="border:1px solid #b8e6bc;border-top:none"&gt;
+  &lt;div style="background:#d4edda;padding:8px 16px;font-size:11px;
+              font-weight:700;color:#155724;text-transform:uppercase"&gt;
+    Rapport de résolution
+  &lt;/div&gt;
+  &lt;table style="width:100%;border-collapse:collapse"&gt;
+    &lt;tr&gt;
+      &lt;td style="border-left:3px solid #e67e22;background:#fff8f0"&gt;
+        Problème rencontré&lt;/td&gt;
+      &lt;td style="background:#fff8f0;white-space:pre-wrap"&gt;
+        ${resolutionProblem}&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style="border-left:3px solid #2E7D32;background:#f0fff4"&gt;
+        Solution appliquée&lt;/td&gt;
+      &lt;td style="background:#f0fff4;white-space:pre-wrap"&gt;
+        ${resolutionSolution}&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/table&gt;
+&lt;/div&gt;''' : '';
+</pre>
+<p>L'attribut <code>white-space:pre-wrap</code> préserve les sauts de ligne de la saisie multi-lignes dans les clients email.</p>
+
+<h2>8.2 Service de Rapports Automatiques Côté Client (AutoReportService)</h2>
+<p>La classe <code>AutoReportService</code> tourne un timer toutes les heures dans l'application cliente :</p>
+<ul>
+  <li>Vérifie si l'auto-rapport est activé (<code>SharedPreferences</code>).</li>
+  <li>Vérifie si la fréquence (daily = 24h, weekly = 7j) est échue.</li>
+  <li>Récupère les données historiques via <code>EnergyRepository</code>.</li>
+  <li>Envoie un email récapitulatif à l'utilisateur connecté via EmailJS, avec un en-tête bleu marine professionnel (<code>#0D47A1</code>) et icône 📊, encapsulant le tableau de statistiques (tension, courant, puissance, FP, énergie, coût estimé).</li>
+</ul>
+
+<h2>8.3 Cloud Functions — Rapports Planifiés Côté Serveur</h2>
+<p>En complément du service client, trois Cloud Functions Node.js (2e génération, runtime Node.js 20) assurent les rapports planifiés indépendamment de la présence d'un utilisateur connecté :</p>
+<table>
+  <tr><th>Fonction</th><th>Déclencheur (heure de Casablanca)</th></tr>
+  <tr><td><code>scheduledDailyReport</code></td><td>Chaque jour à 06:00</td></tr>
+  <tr><td><code>scheduledWeeklyReport</code></td><td>Chaque lundi à 06:00</td></tr>
+  <tr><td><code>scheduledMonthlyReport</code></td><td>Le 1er de chaque mois à 07:00</td></tr>
+</table>
+<p>Chaque fonction appelle <code>sendReport()</code> qui :</p>
+<ol>
+  <li>Collecte tous les emails depuis Firestore.</li>
+  <li>Calcule les statistiques par unité via <code>buildUnitReport()</code> (tension, courant, puissance, FP, énergie totale, coût estimé).</li>
+  <li>Encapsule les tableaux dans un en-tête HTML professionnel bleu marine (<code>#0D47A1</code>) avec icône 📊 et pied de page informatif.</li>
+  <li>Envoie via l'API REST EmailJS avec la clé privée lue depuis <strong>Google Secret Manager</strong> (<code>EMAILJS_PRIVATE_KEY</code>).</li>
+</ol>
+<pre>
+// functions/index.js (extrait simplifié)
+const reportBody = filled.join('&lt;hr style="border-top:1px solid #dde3f0"&gt;');
+const message =
+  '&lt;div style="font-family:Arial;max-width:620px"&gt;'
+  + '&lt;table style="background:#0D47A1;border-radius:8px 8px 0 0"&gt;'
+  + '  &lt;tr&gt;'
+  + '    &lt;td&gt;&lt;span&gt;📊&lt;/span&gt;&lt;/td&gt;'
+  + '    &lt;td&gt;&lt;div style="color:#fff"&gt;Rapport Énergétique KOFERT&lt;/div&gt;&lt;/td&gt;'
+  + '    &lt;td&gt;&lt;div style="color:rgba(255,255,255,.5)"&gt;⚡ KOFERT JFC3&lt;/div&gt;&lt;/td&gt;'
+  + '  &lt;/tr&gt;&lt;/table&gt;'
+  + `&lt;div style="border:1px solid #c5d9f5"&gt;${reportBody}&lt;/div&gt;`
+  + '&lt;div style="background:#e8f0fe"&gt;...lien tableau de bord...&lt;/div&gt;'
+  + '&lt;/div&gt;';
+</pre>
+<p>La clé EmailJS privée est lue depuis Secret Manager via <code>defineSecret('EMAILJS_PRIVATE_KEY')</code>.</p>
+
+<h2>8.4 Notifications Navigateur (Web Push)</h2>
+<p>En parallèle des emails, l'application utilise l'API <code>Notification</code> du navigateur (<code>dart:html</code>) pour afficher des notifications de bureau instantanées lors des alertes. L'utilisateur active/désactive cette fonctionnalité depuis l'écran Paramètres.</p>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 9 -->
+<div class="page-break"></div>
+<h1 id="ia">9. Module de Prédiction par Intelligence Artificielle</h1>
+
+<h2>9.1 Principe et Justification</h2>
+<p>Le module d'IA est implémenté dans la classe <code>EnergyPredictor</code>. Il utilise des méthodes de <strong>régression linéaire</strong> et d'<strong>extrapolation temporelle</strong> sur les données historiques collectées par Firebase.</p>
+<p>Ce choix (plutôt que du deep learning) est justifié par :</p>
+<ul>
+  <li>La nature des données : la consommation énergétique industrielle tend à être linéairement corrélée au temps et aux cycles de production.</li>
+  <li>La contrainte d'exécution côté client (navigateur web) : les modèles lourds (TensorFlow, PyTorch) ne sont pas adaptés.</li>
+  <li>La faible latence souhaitée : la prédiction doit s'afficher en temps réel lors du chargement de l'historique.</li>
+</ul>
+
+<h2>9.2 Fonctionnalités de Prédiction</h2>
+<p>La méthode <code>predict(List&lt;EnergyData&gt; data)</code> retourne un objet <code>PredictionResult</code> contenant :</p>
+<table>
+  <tr><th>Champ</th><th>Description</th></tr>
+  <tr><td><code>nextDayEnergyMwh</code></td><td>Consommation estimée pour les prochaines 24h (mWh)</td></tr>
+  <tr><td><code>nextDayCost</code></td><td>Coût estimé pour les prochaines 24h (MAD)</td></tr>
+  <tr><td><code>monthEndCost</code></td><td>Coût total estimé pour la fin du mois courant (MAD)</td></tr>
+  <tr><td><code>monthToDateCost</code></td><td>Coût accumulé depuis le début du mois (MAD)</td></tr>
+  <tr><td><code>predictedPf10min</code></td><td>Valeur estimée du facteur de puissance dans 10 min</td></tr>
+  <tr><td><code>pfWillDropBelow</code></td><td>Booléen : le PF va-t-il descendre sous le seuil configuré ?</td></tr>
+  <tr><td><code>minutesUntilPfDrop</code></td><td>Minutes avant la chute du PF (null si aucune chute prévue)</td></tr>
+  <tr><td><code>pfTrend</code></td><td>Tendance : "rising" / "stable" / "falling"</td></tr>
+  <tr><td><code>costConfidence</code></td><td>Indice de confiance 0–1 pour la prédiction de coût</td></tr>
+  <tr><td><code>pfConfidence</code></td><td>Indice de confiance 0–1 pour la prédiction PF</td></tr>
+</table>
+
+<h2>9.3 Algorithme</h2>
+<p>L'algorithme se déroule en deux phases :</p>
+<h4>Phase 1 — Prédiction des coûts</h4>
+<ol>
+  <li>Calcul de la consommation d'énergie sur la fenêtre historique disponible.</li>
+  <li>Extrapolation linéaire sur 24h et sur les jours restants du mois.</li>
+  <li>Multiplication par le tarif électrique (<code>tariffRate</code> en MAD/kWh).</li>
+  <li>Calcul de la confiance selon la densité temporelle des données (points par heure).</li>
+</ol>
+<h4>Phase 2 — Prédiction du facteur de puissance</h4>
+<ol>
+  <li>Extraction des 20 dernières valeurs de PF.</li>
+  <li>Régression linéaire (moindres carrés) sur la série temporelle.</li>
+  <li>Extrapolation de la pente sur 10 minutes.</li>
+  <li>Détection de tendance (pente positive = "rising", négative = "falling", plateau = "stable").</li>
+</ol>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 10 -->
+<div class="page-break"></div>
+<h1 id="chat">10. Messagerie Temps Réel et Collaboration</h1>
+
+<h2>10.1 Architecture du Chat</h2>
+<p>L'écran <code>ChatScreen</code> propose trois onglets :</p>
+<ul>
+  <li><strong>Chat Global</strong> : canal commun à tous les utilisateurs connectés. Messages persistés dans la collection Firestore <code>global_chat</code>, lus en temps réel via <code>snapshots()</code>.</li>
+  <li><strong>Messages Directs</strong> : conversations privées en tête-à-tête. La collection <code>dm_chats/{chatId}/messages</code> est utilisée, où <code>chatId</code> est le résultat de la concaténation triée des deux UIDs.</li>
+  <li><strong>En Ligne</strong> : liste des utilisateurs actuellement connectés, avec leur statut de présence (en ligne / occupé / hors-ligne) lu depuis Firebase Realtime Database.</li>
+</ul>
+
+<h2>10.2 Présence Temps Réel (PresenceService)</h2>
+<p>Le service <code>PresenceService</code> gère la présence via Realtime Database :</p>
+<ul>
+  <li>Lors de la connexion, un listener <code>.info/connected</code> est établi.</li>
+  <li>Un hook <code>onDisconnect()</code> est enregistré immédiatement : si le navigateur ferme l'onglet ou perd la connexion, Firebase passe automatiquement le statut à "offline".</li>
+  <li>Les statuts disponibles sont : <code>online</code>, <code>offline</code>, <code>dnd</code> (Do Not Disturb).</li>
+</ul>
+
+<h2>10.3 Structure des Messages</h2>
+<pre>
+// global_chat/{msgId}
+{
+  "senderId": "uid123",
+  "senderName": "Patrick",
+  "text": "Alerte tension confirmée sur Unit 1",
+  "timestamp": ServerTimestamp
+}
+</pre>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 11 -->
+<div class="page-break"></div>
+<h1 id="maintenance">11. Gestion de la Maintenance <span class="updated-badge">ENRICHI</span></h1>
+
+<h2>11.1 Objectif du Module</h2>
+<p>Le journal de maintenance permet aux techniciens de documenter les interventions sur les équipements surveillés (inspections, réparations, calibrations), de suivre leur résolution, et de produire des rapports détaillés avec pièces jointes. C'est un composant critique pour la traçabilité et la conformité industrielle.</p>
+
+<h2>11.2 Structure d'une Tâche de Maintenance — Schéma Firestore Complet</h2>
+<pre>
+// maintenance_logs/{logId} (Firestore)
+{
+  // ── Champs de création ─────────────────────────────────────────
+  "unitId":          "KOFERT_Unit_1",
+  "type":            "repair",       // "inspection" | "repair" | "calibration"
+  "technicianName":  "Patrick",
+  "description":     "Remplacement du capteur PZEM-004T",
+  "assignedToUid":   "uid456",       // null si non assigné
+  "assignedToName":  "Soufiane",
+  "createdBy":       "uid123",
+  "timestamp":       ServerTimestamp,
+
+  // ── Champs de résolution ────────────────────────────────────────
+  "resolved":        true,
+  "resolvedAt":      ServerTimestamp,
+  "resolvedBy":      "Patrick",
+  "resolvedByUid":   "uid123",
+
+  // ── Rapport de résolution (NOUVEAUX champs) ─────────────────────
+  "resolutionProblem":   "Vibrations anormales sur le rotor...",
+  "resolutionSolution":  "Remplacement des roulements A6205...",
+  "attachmentBase64":    "data:image/jpeg;base64,/9j/4AAQ...", // optionnel
+  "attachmentName":      "photo_roulement.jpg"                  // optionnel
+}
+</pre>
+<div class="note">
+  <strong>Compatibilité ascendante :</strong> Les champs <code>resolutionProblem</code>, <code>resolutionSolution</code>, <code>attachmentBase64</code> et <code>attachmentName</code> sont optionnels. Les tâches résolues avant cette mise à jour s'affichent correctement — les boutons "Voir le rapport" et "Télécharger PDF" n'apparaissent que si au moins un des champs rapport est rempli.
+</div>
+
+<h2>11.3 Flux de Création de Tâche</h2>
+<ol>
+  <li>L'opérateur ouvre le dialogue "Ajouter une entrée" (bouton FAB flottant).</li>
+  <li>Il sélectionne l'unité, le type, saisit la description et assigne éventuellement à un utilisateur.</li>
+  <li>Le document est créé dans Firestore <code>maintenance_logs</code>.</li>
+  <li><strong>Si un utilisateur est assigné</strong> : <code>AlertNotificationService.sendMaintenanceAssignedEmail()</code> est appelé — l'assigné reçoit un email de notification individuel.</li>
+</ol>
+
+<h2>11.4 Flux de Résolution — Dialogue Enrichi <span class="new-badge">NOUVEAU</span></h2>
+<p>L'ancien dialogue de résolution (simple confirmation) a été remplacé par un formulaire de rapport complet :</p>
+
+<h3>11.4.1 Composants du dialogue <code>_showResolveDialog()</code></h3>
+<ul>
+  <li><strong>Champ "Résumé du problème"</strong> (obligatoire, 3 lignes) : pré-rempli avec la description de la tâche pour faciliter la saisie. L'opérateur peut le modifier.</li>
+  <li><strong>Champ "Solution appliquée"</strong> (obligatoire, 4 lignes) : décrit les étapes effectuées pour résoudre le problème.</li>
+  <li><strong>Sélecteur de pièce jointe</strong> (optionnel) : accepte PDF, PNG, JPG/JPEG. Taille maximale : 500 KB. Le fichier est lu via <code>html.FileReader.readAsDataUrl()</code> et stocké en Base64 dans Firestore.</li>
+  <li><strong>Validation</strong> : les deux champs texte sont obligatoires — une <code>SnackBar</code> d'erreur s'affiche si l'un est vide.</li>
+</ul>
+
+<h3>11.4.2 Implémentation technique</h3>
+<pre>
+// maintenance_screen.dart — _showResolveDialog() (extrait)
+Future&lt;void&gt; _showResolveDialog(
+    String docId, String unitId, String desc, String type) async {
+  final problemCtrl  = TextEditingController(text: desc);  // pré-rempli
+  final solutionCtrl = TextEditingController();
+  String? attachmentBase64;
+  String? attachmentName;
+
+  final confirmed = await showDialog&lt;bool&gt;(
+    context: context,
+    builder: (ctx) =&gt; StatefulBuilder(
+      builder: (ctx, setDlg) =&gt; AlertDialog(
+        content: ConstrainedBox(               // ← responsive
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SingleChildScrollView(
+            child: Column(children: [
+              TextField(controller: problemCtrl, maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Résumé du problème *')),
+              TextField(controller: solutionCtrl, maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Solution appliquée *')),
+              // Sélecteur fichier (html.FileUploadInputElement)
+              GestureDetector(
+                onTap: () async {
+                  final input = html.FileUploadInputElement()
+                    ..accept = '.pdf,.png,.jpg,.jpeg';
+                  input.click();
+                  await input.onChange.first;
+                  final file = input.files!.first;
+                  if (file.size &gt; 500 * 1024) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content:
+                        Text('Fichier trop volumineux (max 500 KB)')));
+                    return;
+                  }
+                  final reader = html.FileReader();
+                  reader.readAsDataUrl(file);
+                  await reader.onLoad.first;
+                  attachmentBase64 = reader.result as String;
+                  attachmentName   = file.name;
+                  setDlg(() {});
+                },
+                child: /* widget d'affichage du fichier sélectionné */,
+              ),
+            ]),
+          ),
+        ),
+        actions: [
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white),
+            onPressed: () {
+              if (problemCtrl.text.trim().isEmpty ||
+                  solutionCtrl.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content:
+                    Text('Remplissez les deux champs obligatoires.')));
+                return;
+              }
+              Navigator.pop(ctx, true);
+            },
+            label: Text(AppStrings.t('confirm_resolve')),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (confirmed != true) return;
+
+  // Sauvegarde Firestore
+  await FirebaseFirestore.instance
+      .collection('maintenance_logs').doc(docId).update({
+    'resolved':           true,
+    'resolvedAt':         FieldValue.serverTimestamp(),
+    'resolvedBy':         resolverName,
+    'resolvedByUid':      user?.uid ?? '',
+    'resolutionProblem':  problemCtrl.text.trim(),
+    'resolutionSolution': solutionCtrl.text.trim(),
+    if (attachmentBase64 != null) 'attachmentBase64': attachmentBase64,
+    if (attachmentName  != null)  'attachmentName':   attachmentName,
+  });
+
+  // Email enrichi à tous les utilisateurs
+  AlertNotificationService.instance.sendMaintenanceResolvedToAll(
+    taskType:           type,
+    unitId:             unitId,
+    description:        desc,
+    resolvedByName:     resolverName,
+    resolutionProblem:  problemCtrl.text.trim(),   // ← nouveau
+    resolutionSolution: solutionCtrl.text.trim(),  // ← nouveau
+  );
+}
+</pre>
+
+<h2>11.5 Cartes de Tâche — Affichage des Rapports <span class="new-badge">NOUVEAU</span></h2>
+<p>Pour les tâches résolues avec rapport (<code>hasReport = resolutionProblem.isNotEmpty || resolutionSolution.isNotEmpty</code>), deux boutons sont affichés :</p>
+<pre>
+// Responsive : Wrap au lieu de Row pour éviter l'overflow sur mobile
+if (hasReport) ...[
+  Wrap(
+    spacing: 8,    // espacement horizontal
+    runSpacing: 4, // retour à la ligne automatique si nécessaire
+    children: [
+      TextButton.icon(
+        onPressed: () =&gt; _showReportDialog(d),
+        icon: const Icon(Icons.description_outlined, size: 15),
+        label: const Text('Voir le rapport'),
+        style: TextButton.styleFrom(foregroundColor: kTeal),
+      ),
+      TextButton.icon(
+        onPressed: () =&gt; _downloadReportAsPdf(d),
+        icon: const Icon(Icons.picture_as_pdf_outlined, size: 15),
+        label: const Text('Télécharger PDF'),
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xFFE74C3C)),
+      ),
+    ],
+  ),
+],
+</pre>
+
+<h2>11.6 Dialogue de Visualisation du Rapport <span class="new-badge">NOUVEAU</span></h2>
+<p>La méthode <code>_showReportDialog(Map&lt;String, dynamic&gt; d)</code> affiche un <code>AlertDialog</code> stylisé :</p>
+<ul>
+  <li><strong>Section méta</strong> (unité, type, technicien, résolu par, date) : fond teal transparent (<code>kTeal.withValues(alpha:0.07)</code>).</li>
+  <li><strong>Section "Problème rencontré"</strong> : fond orange pâle avec bordure orange légère (<code>kOrange.withValues(alpha:0.07)</code>).</li>
+  <li><strong>Section "Solution appliquée"</strong> : fond vert pâle avec bordure verte légère.</li>
+  <li><strong>Pièce jointe</strong> (si présente) : bouton "Télécharger" qui crée un Blob Base64 et déclenche le téléchargement via <code>html.AnchorElement</code>.</li>
+  <li><strong>Bouton "Télécharger PDF"</strong> en bas du dialogue.</li>
+</ul>
+<pre>
+void _showReportDialog(Map&lt;String, dynamic&gt; d) {
+  showDialog(
+    context: context,
+    builder: (ctx) =&gt; AlertDialog(
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520), // ← responsive
+        child: SingleChildScrollView(
+          child: Column(children: [
+            // Méta (fond kTeal 7%)
+            Container(
+              color: kTeal.withValues(alpha: 0.07),
+              child: Column(children: [
+                _reportMetaRow('Unité',      _unitLabels[unitId] ?? unitId),
+                _reportMetaRow('Type',       AppStrings.t(type)),
+                _reportMetaRow('Technicien', tech),
+                _reportMetaRow('Résolu par', resolvedBy),
+                _reportMetaRow('Date',       dateStr),
+              ]),
+            ),
+            // Problème (fond orange 7%)
+            Container(
+              color: kOrange.withValues(alpha: 0.07),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: kOrange.withValues(alpha: 0.2))),
+              child: Text(problem, style: const TextStyle(height: 1.6)),
+            ),
+            // Solution (fond vert 7%)
+            Container(
+              color: const Color(0xFF2ECC71).withValues(alpha: 0.07),
+              child: Text(solution, style: const TextStyle(height: 1.6)),
+            ),
+          ]),
+        ),
+      ),
+      actions: [
+        ElevatedButton.icon(
+          onPressed: () =&gt; _downloadReportAsPdf(d),
+          icon: const Icon(Icons.picture_as_pdf_outlined),
+          label: const Text('Télécharger PDF'),
+        ),
+      ],
+    ),
+  );
+}
+</pre>
+
+<h2>11.7 Génération et Téléchargement PDF <span class="new-badge">NOUVEAU</span></h2>
+<p>La méthode <code>_downloadReportAsPdf()</code> génère un rapport imprimable dans le navigateur :</p>
+<ol>
+  <li>Construction d'un template HTML complet (méta + problème + solution + horodatage + logo texte KOFERT).</li>
+  <li>Création d'un <code>html.Blob</code> avec type MIME <code>text/html</code>.</li>
+  <li>Génération d'une URL temporaire via <code>html.Url.createObjectUrlFromBlob()</code>.</li>
+  <li>Ouverture d'un nouvel onglet — la page contient un <code>&lt;script&gt;window.print()&lt;/script&gt;</code> qui déclenche automatiquement la boîte de dialogue d'impression du navigateur.</li>
+  <li>L'utilisateur peut imprimer ou choisir "Enregistrer en PDF" dans la boîte d'impression.</li>
+</ol>
+<pre>
+void _downloadReportAsPdf(Map&lt;String, dynamic&gt; d) {
+  final htmlContent = '''&lt;!DOCTYPE html&gt;
+  &lt;html&gt;&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;Rapport — $type — ${_unitLabels[unitId]}&lt;/title&gt;
+    &lt;style&gt;
+      body { font-family: Arial, sans-serif; margin: 2cm; }
+      @media print { body { margin: 1cm; } }
+      h1 { color: #1a3a5c; }
+      .problem { border-left: 4px solid #e67e22;
+                 background:#fff8f0; padding: 12px; }
+      .solution { border-left: 4px solid #2E7D32;
+                  background:#f0fff4; padding: 12px; }
+    &lt;/style&gt;
+  &lt;/head&gt;&lt;body&gt;
+    &lt;h1&gt;Rapport de Maintenance — KOFERT&lt;/h1&gt;
+    &lt;table&gt;...méta-données...&lt;/table&gt;
+    &lt;h3&gt;Problème rencontré&lt;/h3&gt;
+    &lt;div class="problem"&gt;$problem&lt;/div&gt;
+    &lt;h3&gt;Solution appliquée&lt;/h3&gt;
+    &lt;div class="solution"&gt;$solution&lt;/div&gt;
+    &lt;script&gt;window.onload = () =&gt; window.print();&lt;/script&gt;
+  &lt;/body&gt;&lt;/html&gt;''';
+
+  final blob = html.Blob([htmlContent], 'text/html');
+  final url  = html.Url.createObjectUrlFromBlob(blob);
+  html.window.open(url, '_blank');
+}
+</pre>
+
+<h2>11.8 Interface Responsive — ConstrainedBox et Wrap <span class="updated-badge">ENRICHI</span></h2>
+<p>Deux modifications ont été apportées pour garantir le bon rendu sur les petits écrans :</p>
+<table>
+  <tr><th>Dialogue</th><th>Avant</th><th>Après</th></tr>
+  <tr><td>Ajouter une entrée</td><td><code>SizedBox(width: 420)</code></td><td><code>ConstrainedBox(maxWidth: 420)</code></td></tr>
+  <tr><td>Résoudre (rapport)</td><td><code>SizedBox(width: 480)</code></td><td><code>ConstrainedBox(maxWidth: 480)</code></td></tr>
+  <tr><td>Voir le rapport</td><td><code>SizedBox(width: 520)</code></td><td><code>ConstrainedBox(maxWidth: 520)</code></td></tr>
+</table>
+<p>Les boutons "Voir le rapport" / "Télécharger PDF" utilisent <code>Wrap</code> au lieu de <code>Row</code> : sur grand écran ils sont côte à côte ; sur petit écran le second passe automatiquement à la ligne.</p>
+
+<h2>11.9 Règles d'Accès</h2>
+<ul>
+  <li><strong>admin, moderator, operator</strong> : peuvent résoudre n'importe quelle tâche.</li>
+  <li><strong>observer</strong> : peut résoudre uniquement les tâches assignées à son UID (<code>assignedToUid == currentUid</code>).</li>
+  <li><strong>viewer</strong> : aucune action de résolution possible.</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 12 -->
+<div class="page-break"></div>
+<h1 id="deployment">12. Déploiement et CI/CD</h1>
+
+<h2>12.1 Processus de Build Flutter Web</h2>
+<pre>
+# Compilation en mode release (optimisation tree-shaking des icônes)
+flutter build web --release
+
+# Sortie : kofert_dashboard/build/web/
+# Taille finale : ~37 fichiers, bundle JS optimisé par le compilateur Dart
+</pre>
+<p>Le compilateur Dart applique automatiquement le <strong>tree-shaking</strong> sur les fonts Material Icons (réduction de 98,5 % de la taille des polices) et Cupertino Icons (réduction de 99,4 %).</p>
+
+<h2>12.2 Déploiement Firebase Hosting</h2>
+<pre>
+npx firebase-tools deploy --only hosting
+</pre>
+<p>Configuration <code>firebase.json</code> :</p>
+<pre>
+{
+  "hosting": {
+    "public": "kofert_dashboard/build/web",
+    "maxVersions": 1,
+    "cleanUrls": true,
+    "rewrites": [{ "source": "**", "destination": "/index.html" }]
+  }
+}
+</pre>
+<ul>
+  <li><strong>maxVersions: 1</strong> : l'ancienne version est supprimée automatiquement à chaque déploiement (gestion des coûts de stockage).</li>
+  <li><strong>cleanUrls: true</strong> : les routes Flutter fonctionnent sans extension <code>.html</code>.</li>
+  <li><strong>SPA rewrite</strong> : toutes les URLs sont redirigées vers <code>index.html</code> pour que le routeur Flutter prenne le relai.</li>
+</ul>
+
+<h2>12.3 Déploiement des Cloud Functions</h2>
+<pre>
+npx firebase-tools deploy --only functions
+</pre>
+<p>Les fonctions sont déployées dans la région <code>us-central1</code> avec le runtime Node.js 20. La clé secrète est référencée via la nouvelle API de secrets Firebase (<code>defineSecret</code>), qui injecte la valeur à l'exécution sans jamais l'exposer dans les logs.</p>
+
+<h2>12.4 Déploiement des Règles Firestore</h2>
+<pre>
+npx firebase-tools deploy --only firestore:rules
+</pre>
+
+<h2>12.5 Document Firestore de Configuration</h2>
+<p>Le document <code>config/autoReport</code> a été créé via un script Node.js utilisant les Application Default Credentials (ADC) :</p>
+<pre>
+const admin = require('firebase-admin');
+admin.initializeApp();
+await admin.firestore().doc('config/autoReport').set({
+  enabled: true,
+  frequency: 'daily'
+});
+</pre>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 13 -->
+<div class="page-break"></div>
+<h1 id="tests">13. Tests et Validation</h1>
+
+<h2>13.1 Tests Fonctionnels</h2>
+<p>Des tests fonctionnels manuels ont été conduits sur les flux critiques :</p>
+<table>
+  <tr><th>Scénario</th><th>Résultat</th></tr>
+  <tr><td>Connexion avec email vérifié</td><td>✅ Accès accordé, rôle chargé</td></tr>
+  <tr><td>Connexion avec email non vérifié</td><td>✅ Redirection vers écran de vérification</td></tr>
+  <tr><td>Réception de données Realtime DB</td><td>✅ Jauges mises à jour en &lt;1s</td></tr>
+  <tr><td>Alerte tension haute déclenchée</td><td>✅ Email reçu, badge incrémenté</td></tr>
+  <tr><td>Throttle d'alerte (5 min)</td><td>✅ Deuxième alerte identique non envoyée</td></tr>
+  <tr><td>Ajout de tâche de maintenance avec assignation</td><td>✅ Email reçu par l'utilisateur assigné</td></tr>
+  <tr><td>Résolution de tâche</td><td>✅ Email reçu par tous les utilisateurs</td></tr>
+  <tr><td>Export Excel historique</td><td>✅ Fichier .xlsx téléchargé correctement</td></tr>
+  <tr><td>Mode hors-ligne (Firebase injoignable)</td><td>✅ Données en cache affichées avec bandeau orange</td></tr>
+  <tr><td>Changement de langue (FR/EN/AR)</td><td>✅ Interface rechargée dans la langue sélectionnée</td></tr>
+  <tr><td>Contrôle ventilateur (curseur)</td><td>✅ ESP32 reçoit la commande, vitesse ajustée</td></tr>
+  <tr><td>Commande pompe ON/OFF</td><td>✅ Relais activé/désactivé sur ESP32</td></tr>
+  <tr><td>Rapport automatique Cloud Functions</td><td>✅ Email reçu au déclenchement planifié</td></tr>
+  <tr><td>Dialogue email historique — option "Mon email"</td><td>✅ Email connecté pré-sélectionné et affiché</td></tr>
+  <tr><td>Dialogue email historique — option "Autre adresse"</td><td>✅ Champ de saisie affiché, envoi vers adresse custom</td></tr>
+  <tr><td>Dialogue email — aucun utilisateur connecté</td><td>✅ Fallback vers champ de saisie seul</td></tr>
+  <tr><td>Résolution tâche — formulaire rapport complet</td><td>✅ Problème + solution + pièce jointe sauvegardés</td></tr>
+  <tr><td>Résolution sans champs obligatoires</td><td>✅ SnackBar d'erreur, dialogue reste ouvert</td></tr>
+  <tr><td>Pièce jointe &gt; 500 KB</td><td>✅ SnackBar "Fichier trop volumineux", rejet</td></tr>
+  <tr><td>Pièce jointe valide (PDF, PNG)</td><td>✅ Encodée en Base64, stockée dans Firestore</td></tr>
+  <tr><td>"Voir le rapport" → dialogue</td><td>✅ Sections méta / problème / solution affichées</td></tr>
+  <tr><td>"Télécharger PDF" → impression navigateur</td><td>✅ Onglet ouvert, boîte d'impression déclenchée</td></tr>
+  <tr><td>Email résolution avec rapport (section présente)</td><td>✅ Section "Rapport de résolution" visible dans le mail</td></tr>
+  <tr><td>Email résolution sans rapport (champs vides)</td><td>✅ Section absente, email compact (compatibilité)</td></tr>
+  <tr><td>Dialogues sur mobile (&lt;400px)</td><td>✅ ConstrainedBox empêche tout overflow</td></tr>
+  <tr><td>Boutons Wrap sur petit écran</td><td>✅ Second bouton passe à la ligne automatiquement</td></tr>
+</table>
+
+<h2>13.2 Tests de Sécurité</h2>
+<ul>
+  <li>Tentative d'écriture dans <code>users/{uid}/role</code> par un compte non-admin → <strong>rejetée</strong> par les règles Firestore.</li>
+  <li>Tentative de suppression d'un log de maintenance par un compte "viewer" → <strong>rejetée</strong>.</li>
+  <li>Accès direct à l'URL de l'application sans authentification → <strong>redirection</strong> vers la page de connexion.</li>
+</ul>
+
+<h2>13.3 Tests de Performance</h2>
+<ul>
+  <li>Latence moyenne de mise à jour des jauges : <strong>350ms</strong> (mesurée manuellement).</li>
+  <li>Temps de chargement initial de l'application (cold start) : <strong>~2.5s</strong> sur connexion standard.</li>
+  <li>Nombre d'écritures Firestore throttlé à <strong>3/min</strong> (une par unité) grâce à <code>FirestoreLogService</code>.</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 14 -->
+<div class="page-break"></div>
+<h1 id="difficultes">14. Difficultés Rencontrées et Solutions Apportées</h1>
+
+<h2>14.1 Rotation de la Clé EmailJS</h2>
+<p><strong>Problème :</strong> Les emails d'alertes et les rapports historiques avaient cessé de fonctionner. L'investigation a révélé que la clé publique EmailJS avait été tournée (sécurité périodique), mais que seul le fichier <code>functions/index.js</code> avait été mis à jour. Les fichiers <code>historical_screen.dart</code> et <code>alert_notification_service.dart</code> référençaient encore l'ancienne clé <code>Ls3qUruwpCXXayiZB</code>.</p>
+<p><strong>Solution :</strong> Recherche systématique de toutes les occurrences de la clé dans le codebase, mise à jour coordonnée de tous les fichiers, puis déploiement.</p>
+
+<h2>14.2 Document Firestore manquant pour Cloud Functions</h2>
+<p><strong>Problème :</strong> Les Cloud Functions s'exécutaient sans erreur mais n'envoyaient aucun email. Le log Cloud Functions montrait une sortie silencieuse à la lecture de la configuration.</p>
+<p><strong>Cause racine :</strong> Le document <code>config/autoReport</code> n'existait pas dans Firestore. La fonction lisait <code>undefined</code> et sortait à la vérification <code>if (!config.enabled)</code>.</p>
+<p><strong>Solution :</strong> Création du document via un script Node.js avec les ADC (Application Default Credentials) stockés localement.</p>
+
+<h2>14.3 Gestion des Timestamps multi-format (ESP32)</h2>
+<p><strong>Problème :</strong> L'ESP32 peut envoyer les timestamps dans différents formats selon la version du firmware : entier epoch en secondes, entier epoch en millisecondes, ou chaîne ISO-8601. Une mauvaise détection causait des décalages horaires significatifs (affichage en 1970 ou horodatage erroné).</p>
+<p><strong>Solution :</strong> Fonction <code>parseTimestamp(dynamic raw)</code> dans <code>EnergyData.fromJson()</code> qui gère les trois cas, avec détection de la plage pour distinguer secondes/millisecondes (seuil : > 1e12 → millisecondes), et conversion systématique en heure locale (GMT+1, Africa/Casablanca).</p>
+
+<h2>14.4 Throttling Firestore pour Réduire les Coûts</h2>
+<p><strong>Problème :</strong> Les données ESP32 arrivent chaque seconde. Sans restriction, Firestore recevrait 3 × 3600 = 10 800 écritures par heure, ce qui dépasserait rapidement le quota gratuit (50k écritures/jour sur Spark).</p>
+<p><strong>Solution :</strong> Le service <code>FirestoreLogService</code> applique un throttle de 60 secondes par unité, réduisant les écritures à 180/heure (facteur 20).</p>
+
+<h2>14.5 Mode Hors-Ligne</h2>
+<p><strong>Problème :</strong> En cas de perte de connexion à Firebase (réseau instable en environnement industriel), l'application affichait un écran vide.</p>
+<p><strong>Solution :</strong> Implémentation d'un cache local (<code>SharedPreferences</code>) via <code>EnergyRepository.getCachedReading()</code>. Un timer de 10 secondes (<code>_noDataTimer</code>) déclenche l'affichage des données en cache avec un bandeau d'avertissement orange.</p>
+
+<h2>14.6 Sécurité des Règles Firestore — Bootstrap Admin</h2>
+<p><strong>Problème :</strong> L'administrateur initial ne pouvait pas se donner le rôle "admin" puisque les règles Firestore interdisent la modification du champ <code>role</code> par soi-même — créant un deadlock d'initialisation.</p>
+<p><strong>Solution :</strong> Exception de bootstrap dans les règles : l'email hardcodé de l'admin (<code>soufianelaghri1@gmail.com</code>) peut définir son propre rôle à "admin" une seule fois, condition vérifiable via <code>request.auth.token.email</code>.</p>
+
+<h2>14.7 Couleur du Bouton "Envoyer" Invisible <span class="new-badge">NOUVEAU</span></h2>
+<p><strong>Problème :</strong> Le bouton "Envoyer" du dialogue email historique était illisible — le libellé semblait vide. Lors de l'inspection, le texte était blanc (<code>foregroundColor</code> par défaut de Flutter) sur un fond teal clair (<code>kTeal = Color(0xFF4ECDC4)</code>), une couleur de surface qui n'a pas assez de contraste avec le blanc.</p>
+<p><strong>Solution :</strong> Ajout explicite de <code>foregroundColor: Colors.black87</code> dans <code>ElevatedButton.styleFrom()</code> pour imposer un texte sombre sur la surface claire :</p>
+<pre>
+ElevatedButton.styleFrom(
+  backgroundColor:  kTeal,
+  foregroundColor:  Colors.black87,  // ← correction lisibilité
+),
+</pre>
+<div class="note">
+  <strong>Règle générale :</strong> Flutter ne calcule pas automatiquement la couleur de texte contrastante. Pour toute couleur de fond claire, <code>foregroundColor</code> doit être spécifié explicitement.
+</div>
+
+<h2>14.8 Débordement des Dialogues sur Mobile <span class="new-badge">NOUVEAU</span></h2>
+<p><strong>Problème :</strong> Les trois dialogues de l'écran Maintenance utilisaient <code>SizedBox(width: X)</code> avec une largeur fixe. Sur les écrans de moins de 400px (mobiles anciens, mode portrait étroit), le widget débordait de son conteneur avec une erreur <em>RenderFlex overflowed</em>.</p>
+<p><strong>Solution :</strong> Remplacement de tous les <code>SizedBox(width: X)</code> par <code>ConstrainedBox(constraints: BoxConstraints(maxWidth: X))</code> : sur grand écran la largeur maximale est respectée, sur petit écran le widget s'adapte à la fenêtre disponible.</p>
+<pre>
+// Avant (débordement sur mobile)
+SizedBox(width: 480, child: content)
+
+// Après (responsive)
+ConstrainedBox(
+  constraints: const BoxConstraints(maxWidth: 480),
+  child: content,
+)
+</pre>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 15 -->
+<div class="page-break"></div>
+<h1 id="resultats">15. Résultats et Bilan du Projet</h1>
+
+<h2>15.1 Livraisons Réalisées</h2>
+<table>
+  <tr><th>Livrable</th><th>Statut</th><th>URL / Emplacement</th></tr>
+  <tr><td>Application Flutter Web déployée</td><td>✅ Production</td><td>https://ocp-energy-monitor.web.app</td></tr>
+  <tr><td>Tableau de bord temps réel (3 unités)</td><td>✅ Opérationnel</td><td>Dashboard Screen</td></tr>
+  <tr><td>Historique + Export Excel + Email</td><td>✅ Opérationnel</td><td>Historical Screen</td></tr>
+  <tr><td>Prédiction IA (coûts + PF)</td><td>✅ Opérationnel</td><td>Historical Screen</td></tr>
+  <tr><td>Résumé journalier / mensuel</td><td>✅ Opérationnel</td><td>Summary Screen</td></tr>
+  <tr><td>Comparaison multi-unités</td><td>✅ Opérationnel</td><td>Comparison Screen</td></tr>
+  <tr><td>Journal d'alertes + Email throttlé</td><td>✅ Opérationnel</td><td>Alerts Screen</td></tr>
+  <tr><td>Journal de maintenance + Notifications</td><td>✅ Opérationnel</td><td>Maintenance Screen</td></tr>
+  <tr><td>Messagerie temps réel (Chat + DM)</td><td>✅ Opérationnel</td><td>Chat Screen</td></tr>
+  <tr><td>Gestion profil + Présence + QR Code</td><td>✅ Opérationnel</td><td>Profile Screen</td></tr>
+  <tr><td>Paramètres complets + RBAC</td><td>✅ Opérationnel</td><td>Settings Screen</td></tr>
+  <tr><td>Cloud Functions (3 rapports planifiés)</td><td>✅ Déployées</td><td>Firebase us-central1</td></tr>
+  <tr><td>Règles Firestore sécurisées (RBAC)</td><td>✅ Déployées</td><td>Firestore Rules</td></tr>
+  <tr><td>Contrôle actif (ventilateur + pompe)</td><td>✅ Opérationnel</td><td>Dashboard Screen</td></tr>
+  <tr><td>Support trilingue FR/EN/AR</td><td>✅ Implémenté</td><td>app_strings.dart</td></tr>
+  <tr><td>Dialogue email historique — sélection destinataire</td><td>✅ Opérationnel</td><td>Historical Screen</td></tr>
+  <tr><td>Rapport de résolution (problème + solution + pièce jointe)</td><td>✅ Opérationnel</td><td>Maintenance Screen</td></tr>
+  <tr><td>Visualisation rapport ("Voir le rapport")</td><td>✅ Opérationnel</td><td>Maintenance Screen</td></tr>
+  <tr><td>Téléchargement PDF des rapports de maintenance</td><td>✅ Opérationnel</td><td>Maintenance Screen</td></tr>
+  <tr><td>Email de résolution enrichi (section rapport)</td><td>✅ Opérationnel</td><td>AlertNotificationService</td></tr>
+  <tr><td>Interface responsive (ConstrainedBox + Wrap)</td><td>✅ Implémenté</td><td>Maintenance Screen</td></tr>
+</table>
+
+<h2>15.2 Métriques Techniques</h2>
+<ul>
+  <li><strong>Nombre d'écrans</strong> : 11 (login, vérification, dashboard, historique, résumé, alertes, comparaison, maintenance, chat, profil, paramètres).</li>
+  <li><strong>Nombre de services</strong> : 6 (EnergyRepository, FirestoreLogService, AlertNotificationService, AutoReportService, EnergyPredictor, PresenceService).</li>
+  <li><strong>Dépendances npm (Cloud Functions)</strong> : firebase-admin, firebase-functions, axios, node-fetch.</li>
+  <li><strong>Dépendances pub.dev clés</strong> : firebase_core, firebase_auth, firebase_database, cloud_firestore, syncfusion_flutter_charts, syncfusion_flutter_gauges, http, excel, qr_flutter, intl, shared_preferences.</li>
+  <li><strong>Langues supportées</strong> : Français, Anglais, Arabe (RTL).</li>
+  <li><strong>Collections Firestore</strong> : 8 (sensor_readings, unit_status, users, maintenance_logs, alerts, global_chat, dm_chats, config).</li>
+</ul>
+
+<h2>15.3 Impact Opérationnel</h2>
+<p>Le système apporte une valeur ajoutée mesurable pour le site KOFERT :</p>
+<ul>
+  <li><strong>Visibilité instantanée</strong> sur la consommation énergétique — auparavant non centralisée.</li>
+  <li><strong>Réactivité aux anomalies</strong> : les techniciens sont alertés par email en moins de 30 secondes après un dépassement de seuil.</li>
+  <li><strong>Traçabilité des interventions</strong> : chaque opération de maintenance est documentée avec horodatage, responsable et pièce jointe de description.</li>
+  <li><strong>Prévision des coûts</strong> : possibilité d'anticiper les pics de consommation et d'optimiser les plannings de production.</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 16 -->
+<div class="page-break"></div>
+<h1 id="perspectives">16. Perspectives et Améliorations Futures</h1>
+
+<h2>16.1 Améliorations Techniques Identifiées</h2>
+<ul>
+  <li><strong>Migration vers WebAssembly (WASM)</strong> : Flutter 3.x supporte la compilation WASM pour une performance encore améliorée. La migration nécessite la résolution des avertissements liés aux packages non-WASM-ready.</li>
+  <li><strong>Notifications Push Firebase (FCM)</strong> : remplacer/compléter l'API Notification du navigateur par Firebase Cloud Messaging pour un support mobile natif.</li>
+  <li><strong>Dashboard offline-first avec Firestore offline persistence</strong> : activer la persistence offline de Firestore (indexedDB) pour une expérience hors-ligne complète même sur les données Firestore.</li>
+  <li><strong>Module de rapport PDF serveur</strong> : générer des rapports PDF haute fidélité avec graphiques Syncfusion via Puppeteer (Cloud Function Node.js) — pour des rapports plus complexes que le print navigateur.</li>
+  <li><strong>Firebase Storage pour les pièces jointes</strong> : remplacer le stockage Base64 dans Firestore par Firebase Storage pour les pièces jointes, afin d'éviter la limite de 1 MB par document Firestore.</li>
+  <li><strong>Signature numérique des rapports de maintenance</strong> : horodatage blockchain ou signature HMAC pour garantir l'intégrité des rapports d'intervention.</li>
+  <li><strong>Modèles d'IA plus avancés</strong> : intégrer TensorFlow.js ou Google Vertex AI pour des prédictions LSTM sur les séries temporelles longues.</li>
+  <li><strong>Migration vers Firebase Data Connect (PostgreSQL)</strong> : pour les analyses complexes, SQL relationnel avec Firebase Data Connect est plus adapté que Firestore.</li>
+</ul>
+
+<h2>16.2 Extensions Fonctionnelles</h2>
+<ul>
+  <li><strong>Application mobile Flutter</strong> : le même codebase peut être compilé pour Android/iOS avec un effort minimal.</li>
+  <li><strong>Tableau de bord multi-sites</strong> : étendre le monitoring à d'autres unités ou sites OCP.</li>
+  <li><strong>Intégration SCADA</strong> : connecter l'application à un système SCADA industriel existant.</li>
+  <li><strong>Gestion des pièces de rechange</strong> : lier le journal de maintenance à un inventaire de pièces.</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════ CHAPTER 17 -->
+<div class="page-break"></div>
+<h1 id="conclusion">17. Conclusion Générale</h1>
+
+<p>Ce projet de fin d'études a permis de concevoir, développer et déployer intégralement un système de supervision énergétique industriel, du capteur au tableau de bord cloud, en passant par toute l'infrastructure backend.</p>
+
+<p>Du point de vue technique, ce stage a nécessité la maîtrise d'une pile technologique moderne et exigeante : le framework Flutter pour le développement d'interfaces web haute-performance, Firebase pour l'ensemble des services cloud (base de données temps réel, Firestore, authentification, fonctions serverless, hébergement), la programmation des microcontrôleurs ESP32 pour l'acquisition de données industrielles, et les bonnes pratiques de sécurité (RBAC, Secret Manager, règles Firestore).</p>
+
+<p>Du point de vue fonctionnel, l'application livrée répond à l'intégralité des besoins identifiés en phase d'analyse : visualisation temps réel, alertes intelligentes avec notifications email, prédiction par IA, journal de maintenance complet avec formulaire de rapport (problème, solution, pièce jointe), visualisation et téléchargement PDF des rapports, dialogue email historique avec sélection intelligente du destinataire, interface responsive adaptée aux mobiles, et rapports automatiques planifiés.</p>
+
+<p>Ce projet illustre comment les technologies cloud-natives modernes (Firebase, Flutter) permettent de développer des applications industrielles robustes, sécurisées et évolutives, avec des délais et des coûts maîtrisés, tout en maintenant des standards de qualité élevés.</p>
+
+<p style="margin-top: 30px;"><em>L'expérience acquise au sein du Groupe OCP, dans un environnement industriel exigeant et sur un projet concret à impact opérationnel réel, représente une richesse inestimable pour la suite de ma carrière d'ingénieur.</em></p>
+
+<!-- ═══════════════════════════════════════════════════════ ANNEXES -->
+<div class="page-break"></div>
+<h1 id="annexes">18. Annexes Techniques</h1>
+
+<h2>Annexe A — Dépendances Flutter (pubspec.yaml)</h2>
+<pre>
+dependencies:
+  flutter: { sdk: flutter }
+  flutter_localizations: { sdk: flutter }
+  firebase_core: ^4.6.0
+  firebase_auth: ^6.3.0
+  firebase_database: ^12.2.0
+  firebase_data_connect: ^0.2.4
+  cloud_firestore: ^6.2.0
+  syncfusion_flutter_gauges: ^33.1.47
+  syncfusion_flutter_charts: ^33.1.47
+  shared_preferences: ^2.2.2
+  intl: ^0.20.2
+  excel: ^4.0.6
+  url_launcher: ^6.3.0
+  http: ^1.2.0
+  qr_flutter: ^4.1.0
+  cupertino_icons: ^1.0.8
+</pre>
+
+<h2>Annexe B — Modèle de Données EnergyData</h2>
+<pre>
+class EnergyData {
+  final double powerFactor;    // 0.0–1.0
+  final double voltage;        // Volts
+  final double current;        // Ampères
+  final double power;          // Watts
+  final double energy;         // mWh (cumulatif)
+  final double frequency;      // Hz
+  final double windSpeed;      // % (Unit 2 seulement)
+  final int    waterLevel;     // % (Unit 3 seulement)
+  final DateTime timestamp;
+  final String unitId;         // KOFERT_Unit_1 | _2 | _3
+}
+</pre>
+
+<h2>Annexe C — Schéma Firestore : maintenance_logs</h2>
+<pre>
+// maintenance_logs/{logId}
+{
+  // Création
+  unitId:         string,       // "KOFERT_Unit_1" | "_2" | "_3"
+  type:           string,       // "inspection" | "repair" | "calibration"
+  technicianName: string,
+  description:    string,
+  assignedToUid:  string | null,
+  assignedToName: string | null,
+  createdBy:      string,       // UID créateur
+  timestamp:      Timestamp,
+
+  // Résolution
+  resolved:        boolean,
+  resolvedAt:      Timestamp | null,
+  resolvedBy:      string | null,
+  resolvedByUid:   string | null,
+
+  // Rapport de résolution (nouveaux champs — optionnels)
+  resolutionProblem:   string | null,
+  resolutionSolution:  string | null,
+  attachmentBase64:    string | null,  // data:mime;base64,... — max ~375KB stocké
+  attachmentName:      string | null,
+}
+</pre>
+
+<h2>Annexe E — Commandes de Déploiement</h2>
+<pre>
+# Build Flutter Web
+cd kofert_dashboard
+flutter build web --release
+
+# Déploiement complet
+cd ..
+npx firebase-tools deploy --only hosting
+npx firebase-tools deploy --only functions
+npx firebase-tools deploy --only firestore:rules
+
+# Rotation d'un secret
+npx firebase-tools functions:secrets:set EMAILJS_PRIVATE_KEY
+
+# Vérifier les fonctions déployées
+npx firebase-tools functions:list
+</pre>
+
+<h2>Annexe D — Structure HTML de l'Email de Résolution Enrichi <span class="new-badge">NOUVEAU</span></h2>
+<pre>
+┌─────────────────────────────────────────────────────┐
+│  EN-TÊTE  background:#2E7D32                        │
+│  ┌───────────────────────────────────────────────┐  │
+│  │ [✅]  Tâche de Maintenance Résolue             │  │
+│  │       Confirmée le DD/MM/YYYY HH:mm           │  │
+│  │                        ⚡ KOFERT JFC3  →      │  │
+│  └───────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────┤
+│  TABLEAU DE MÉTADONNÉES                             │
+│  │ Type         │ repair (Réparation)              │  │
+│  │ Unité        │ KOFERT_Unit_1 — Lampe AC         │  │
+│  │ Description  │ Remplacement PZEM...             │  │
+│  │ Résolu par   │ Patrick                          │  │
+│  │ Date         │ 20/06/2026 14:32                 │  │
+├─────────────────────────────────────────────────────┤
+│  RAPPORT DE RÉSOLUTION  ← conditionnel (hasReport)  │
+│  ┌────────────────────────────────────────────────┐ │
+│  │ RAPPORT DE RÉSOLUTION (en-tête vert)           │ │
+│  ├─[🟠 gauche]──────────────────────────────────  │ │
+│  │ Problème rencontré │ (saisie multi-ligne)      │ │
+│  ├─[🟢 gauche]──────────────────────────────────  │ │
+│  │ Solution appliquée │ (saisie multi-ligne)      │ │
+│  └────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────┤
+│  PIED DE PAGE  background:#e8f5e9                   │
+│  Tableau de bord : https://ocp-energy-monitor.web…  │
+└─────────────────────────────────────────────────────┘
+  Si hasReport = false : la section "RAPPORT DE RÉSOLUTION"
+  est omise et l'email s'affiche de manière compacte.
+</pre>
+
+<h2>Annexe F — Utilisateurs de Production</h2>
+<table>
+  <tr><th>Email</th><th>Nom</th><th>Rôle</th></tr>
+  <tr><td>soufianelaghri1@gmail.com</td><td>Soufiane</td><td>admin</td></tr>
+  <tr><td>rioshow7@gmail.com</td><td>Patrick</td><td>operator</td></tr>
+  <tr><td>batotev777@ameady.com</td><td>Mustapha</td><td>operator</td></tr>
+  <tr><td>rajano4159@4nly.com</td><td>Tom</td><td>viewer</td></tr>
+</table>
+
+<h2>Annexe G — Structure du Projet Firebase</h2>
+<table>
+  <tr><th>Service</th><th>Identifiant</th></tr>
+  <tr><td>Projet Firebase</td><td><code>ocp-energy-monitor</code></td></tr>
+  <tr><td>Hosting URL</td><td>https://ocp-energy-monitor.web.app</td></tr>
+  <tr><td>Région Cloud Functions</td><td><code>us-central1</code></td></tr>
+  <tr><td>Secret Manager</td><td><code>EMAILJS_PRIVATE_KEY</code> (version 2)</td></tr>
+  <tr><td>EmailJS Service</td><td><code>service_1tovyp1</code></td></tr>
+  <tr><td>EmailJS Template</td><td><code>template_9cy6uou</code></td></tr>
+</table>
+
+<br><br>
+<hr style="border: 1px solid #ccc; margin: 30px 0;">
+<p style="text-align:center; color:#888; font-size:10pt;">
+  Rapport de Stage PFE — Système de Supervision Énergétique KOFERT<br>
+  OCP Group · Site de Khouribga · Juin 2026<br>
+  <em>Document confidentiel — Ne pas distribuer en dehors de l'entreprise</em>
+</p>
+
+</body>
+</html>

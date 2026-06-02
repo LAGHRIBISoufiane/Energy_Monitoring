@@ -1,0 +1,113 @@
+mutation @transaction {
+  energyUnit_insertMany(
+    data: [
+      {
+        id: "kofert-unit-1",
+        unitName: "KOFERT_Unit_1",
+        location: "Main Building - Floor 3",
+        isActive: true
+      },
+      {
+        id: "kofert-unit-2",
+        unitName: "KOFERT_Unit_2",
+        location: "Main Building - Floor 4",
+        isActive: true
+      },
+      {
+        id: "kofert-unit-3",
+        unitName: "KOFERT_Unit_3",
+        location: "Auxiliary Building - Floor 1",
+        isActive: false
+      }
+    ]
+  )
+
+  energyMetric_insertMany(
+    data: [
+      {
+        unitId: "kofert-unit-1",
+        voltage: 230.5,
+        current: 15.2,
+        power: 3450.5,
+        energy: 125.3,
+        powerFactor: 0.92,
+        frequency: 50.0,
+        recordedAt: "2026-04-11T10:00:00Z"
+      },
+      {
+        unitId: "kofert-unit-1",
+        voltage: 231.2,
+        current: 14.8,
+        power: 3400.0,
+        energy: 125.5,
+        powerFactor: 0.93,
+        frequency: 50.0,
+        recordedAt: "2026-04-11T10:15:00Z"
+      },
+      {
+        unitId: "kofert-unit-2",
+        voltage: 228.5,
+        current: 18.5,
+        power: 4200.0,
+        energy: 142.1,
+        powerFactor: 0.85,
+        frequency: 50.0,
+        recordedAt: "2026-04-11T10:00:00Z"
+      }
+    ]
+  )
+
+  energyAlert_insertMany(
+    data: [
+      {
+        unitId: "kofert-unit-2",
+        metricId: "metric-1",
+        alertType: "LOW_POWER_FACTOR",
+        severity: "WARNING",
+        message: "Power factor below 0.9 - Consider capacitor installation",
+        isResolved: false
+      }
+    ]
+  )
+}
+        reviewText: "An incredible movie with a mind-blowing plot!",
+        reviewDate: "2025-10-01"
+      },
+      {
+        userId: "fep4fXpGWsaRpuphq9CIrBIXQ0S2",
+        movieId: "550e8400-e29b-41d4-a716-446655440001",
+        rating: 5,
+        reviewText: "A revolutionary film that changed cinema forever.",
+        reviewDate: "2025-10-01"
+      },
+      {
+        userId: "TBedjwCX0Jf955Uuoxk6k74sY0l1",
+        movieId: "550e8400-e29b-41d4-a716-446655440002",
+        rating: 5,
+        reviewText: "A visually stunning and emotionally impactful movie.",
+        reviewDate: "2025-10-01"
+      },
+      {
+        userId: "SnLgOC3lN4hcIl69s53cW0Q8R1T2",
+        movieId: "550e8400-e29b-41d4-a716-446655440003",
+        rating: 4,
+        reviewText: "A fantastic superhero film with great performances.",
+        reviewDate: "2025-10-01"
+      },
+      {
+        userId: "fep4fXpGWsaRpuphq9CIrBIXQ0S2",
+        movieId: "550e8400-e29b-41d4-a716-446655440004",
+        rating: 5,
+        reviewText: "An amazing film that keeps you on the edge of your seat.",
+        reviewDate: "2025-10-01"
+      },
+      {
+        userId: "TBedjwCX0Jf955Uuoxk6k74sY0l1",
+        movieId: "550e8400-e29b-41d4-a716-446655440005",
+        rating: 5,
+        reviewText: "An absolute classic with unforgettable dialogue.",
+        reviewDate: "2025-10-01"
+      }
+    ]
+  )
+}

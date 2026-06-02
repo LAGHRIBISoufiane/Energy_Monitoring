@@ -19,6 +19,12 @@ part 'get_latest_energy_metrics.dart';
 
 part 'get_active_alerts.dart';
 
+part 'get_alert_history.dart';
+
+part 'get_metrics_by_date_range.dart';
+
+part 'get_energy_unit.dart';
+
 
 
 
@@ -65,6 +71,21 @@ class ExampleConnector {
   
   GetActiveAlertsVariablesBuilder getActiveAlerts () {
     return GetActiveAlertsVariablesBuilder(dataConnect, );
+  }
+  
+  
+  GetAlertHistoryVariablesBuilder getAlertHistory ({required String unitId, }) {
+    return GetAlertHistoryVariablesBuilder(dataConnect, unitId: unitId,);
+  }
+  
+  
+  GetMetricsByDateRangeVariablesBuilder getMetricsByDateRange ({required String unitId, required Timestamp startDate, required Timestamp endDate, }) {
+    return GetMetricsByDateRangeVariablesBuilder(dataConnect, unitId: unitId,startDate: startDate,endDate: endDate,);
+  }
+  
+  
+  GetEnergyUnitVariablesBuilder getEnergyUnit ({required String unitId, }) {
+    return GetEnergyUnitVariablesBuilder(dataConnect, unitId: unitId,);
   }
   
 

@@ -202,6 +202,44 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
+              // ── Mobile QR code ── scan to open on another device ──────────
+              Builder(builder: (_) {
+                final url = html.window.location.href;
+                return Container(
+                  color: c.sidebar,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                                color: kTeal.withValues(alpha: 0.2),
+                                blurRadius: 8),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(6),
+                        child: QrImageView(
+                          data: url,
+                          version: QrVersions.auto,
+                          size: 64,
+                          backgroundColor: Colors.white,
+                          errorCorrectionLevel: QrErrorCorrectLevel.M,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          AppStrings.t('scan_mobile'),
+                          style: TextStyle(color: c.textSec, fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
               Expanded(child: formChild),
             ],
           ),

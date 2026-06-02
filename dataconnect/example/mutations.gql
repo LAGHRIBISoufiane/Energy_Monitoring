@@ -1,0 +1,55 @@
+# Mutations for OCP - KOFERT Energy Monitoring System
+
+# Register a new energy monitoring unit
+mutation CreateEnergyUnit($id: String!, $unitName: String!, $location: String!, $deviceType: String!)
+@auth(level: PUBLIC, insecureReason: "Anyone can register a new monitoring unit.") {
+  energyUnit_insert(data: { id: $id, unitName: $unitName, location: $location, deviceType: $deviceType, isActive: true })
+}
+
+# Record a new energy metric measurement
+mutation RecordEnergyMetric(
+  $unitId: String!,
+  $voltage: Float!,
+  $current: Float!,
+  $powerFactor: Float!,
+  $power: Float,
+  $energy: Float,
+  $frequency: Float,
+  $fanSpeed: Int,
+  $waterLevel: Int
+) @auth(level: PUBLIC, insecureReason: "Anyone can record energy metrics.") {
+  energyMetric_insert(data: {
+    unitId: $unitId
+    voltage: $voltage
+    current: $current
+    powerFactor: $powerFactor
+    power: $power
+    energy: $energy
+    frequency: $frequency
+    fanSpeed: $fanSpeed
+    waterLevel: $waterLevel
+    recordedAt_expr: "request.time"
+  })
+}
+
+# Create an alert for anomalies
+mutation CreateEnergyAlert($unitId: String!, $alertType: String!, $severity: String!, $message: String!)
+@auth(level: PUBLIC, insecureReason: "Anyone can create an energy alert.") {
+  energyAlert_insert(
+    data: {
+      unitId: $unitId
+      alertType: $alertType
+      severity: $severity
+      message: $message
+      isResolved: false
+    }
+  )
+}
+
+# Resolve an alert
+mutation ResolveAlert($alertId: UUID!) @auth(level: USER, insecureReason: "Any authenticated user can resolve system-wide energy alerts.") {
+  energyAlert_update(
+    key: { id: $alertId }
+    data: { isResolved: true, resolvedAt_expr: "request.time", resolvedByUid_expr: "auth.uid" }
+  )
+}
