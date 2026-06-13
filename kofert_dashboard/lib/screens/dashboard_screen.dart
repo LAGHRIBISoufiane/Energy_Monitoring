@@ -68,7 +68,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _dashChartMetric = 'power'; // 'power'|'voltage'|'current'|'energy'|'pf'
   // Accumulated energy (Wh) calculated from power × Δtime since the session started.
   // Updated on every real-time reading — always changes, unaffected by PZEM unit quirks.
-  double _sessionEnergyWh = 0.0;
+  // Keep session energy as mWh (internal unit) — matches EnergyData.energy
+  double _sessionEnergyMWh = 0.0;
+  final Map<String, double> _lastMeterEnergy = {};
+  static const double _powerThresholdForCounting = 0.5; // W
 
   static const _units = ['KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
 
@@ -183,7 +186,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _noData = false;
       _history.clear();
       _cachedFallback = null;
-      _sessionEnergyWh = 0.0;
+      _sessionEnergyMWh = 0.0;
     });
     selectedUnitNotifier.value = unit;
     _resubscribe();
@@ -205,9 +208,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final e = EnergyData.fromJson(
           event.snapshot.value as Map<dynamic, dynamic>, _selectedUnit);
       if (!mounted) return;
+      // Update session energy by computing delta of cumulative meter readout
+      final newMeter = e.energy; // mWh
+      final prevMeter = _lastMeterEnergy[_selectedUnit];
+      if (prevMeter != null) {
+        final delta = newMeter - prevMeter;
+        if (delta > 0 && delta < 1e9 && e.power > _powerThresholdForCounting) {
+          _sessionEnergyMWh += delta;
+        }
+      }
+      _lastMeterEnergy[_selectedUnit] = newMeter;
+
       setState(() {
         _noData = false;
-        final prev = _current;
         _current = e;
         _history.add(e);
         if (_history.length > 60) _history.removeAt(0);
@@ -455,6 +468,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildContent() {
     final d = _current!;
+    // Adjust displayed metrics for idle devices: when power is near-zero we
+    // present a normalized voltage (220V or 5V) and zero current so the UI
+    // doesn't misleadingly show a large historical cumulative energy as if
+    // it were freshly consumed.
+    final bool isIdle = d.power <= _powerThresholdForCounting;
+    final double displayVoltage = isIdle
+        ? (_selectedUnit == 'KOFERT_Unit_1' ? 220.0 : 5.0)
+        : d.voltage;
+    final double displayCurrent = isIdle ? 0.0 : d.current;
+    // Use session-accumulated energy (mWh) for live dashboard display so the
+    // home screen shows real-time consumption rather than the raw cumulative
+    // meter value which led to inflated daily sums.
+    final double displayEnergyMWh = _sessionEnergyMWh > 0 ? _sessionEnergyMWh : d.energy;
     return LayoutBuilder(builder: (context, constraints) {
       final m = constraints.maxWidth < 600;
       return SingleChildScrollView(
@@ -468,9 +494,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _buildAlertBanner(d),
               const SizedBox(height: 20),
             ],
-            _buildStatRow1(d, m),
+            _buildStatRow1(d, m, displayVoltage: displayVoltage, displayCurrent: displayCurrent, displayEnergyMWh: displayEnergyMWh),
             const SizedBox(height: 14),
-            _buildStatRow2(d, m),
+            _buildStatRow2(d, m, displayVoltage: displayVoltage, displayCurrent: displayCurrent, displayEnergyMWh: displayEnergyMWh),
             ValueListenableBuilder<String>(
               valueListenable: roleNotifier,
               builder: (_, role, __) {
@@ -821,11 +847,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return ('0.00', 'kWh'); // near-zero — still show kWh unit
   }
 
-  Widget _buildStatRow1(EnergyData d, bool m) {
+  Widget _buildStatRow1(EnergyData d, bool m, {double? displayVoltage, double? displayCurrent, double? displayEnergyMWh}) {
     final (pVal, pUnit) = _cvtPower(d.power);
-    final (eVal, eUnit) = _cvtEnergy(d.energy); // already mWh (converted in EnergyData.fromJson)
-    final (vVal, vUnit) = _cvtVoltage(d.voltage);
-    final (iVal, iUnit) = _cvtCurrent(d.current);
+    final energyForDisplay = displayEnergyMWh ?? d.energy;
+    final (eVal, eUnit) = _cvtEnergy(energyForDisplay); // mWh
+    final (vVal, vUnit) = _cvtVoltage(displayVoltage ?? d.voltage);
+    final (iVal, iUnit) = _cvtCurrent(displayCurrent ?? d.current);
     final c1 = _StatCard(icon: '⚡', iconBg: kOrange,
         value: pVal, unit: pUnit, label: AppStrings.t('active_power'));
     final c2 = _StatCard(icon: '🔋', iconBg: kTeal,
@@ -851,8 +878,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ]);
   }
 
-  Widget _buildStatRow2(EnergyData d, bool m) {
-    final cost = (d.energy / 1000000) * _tariffRate; // mWh ÷ 1M → kWh × MAD/kWh = MAD
+  Widget _buildStatRow2(EnergyData d, bool m, {double? displayVoltage, double? displayCurrent, double? displayEnergyMWh}) {
+    final energyForDisplay = displayEnergyMWh ?? d.energy;
+    final cost = (energyForDisplay / 1000000) * _tariffRate; // mWh ÷ 1M → kWh × MAD/kWh = MAD
     // INA219 units (Unit 2 fan 5 V DC, Unit 3 pump 5 V DC) — no AC metrics.
     if (d.isINA219) {
       final powerMw = d.power * 1000; // W → mW for display clarity at low wattage
@@ -861,7 +889,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final i2 = _StatCard(icon: '⚡', iconBg: const Color(0xFF1ABC9C),
           value: powerMw.toStringAsFixed(1), unit: 'mW', label: AppStrings.t('dc_power'));
       final i3 = _StatCard(icon: '🌊', iconBg: const Color(0xFF3498DB),
-          value: (d.current * 1000).toStringAsFixed(1), unit: 'mA', label: AppStrings.t('dc_current'));
+          value: ((displayCurrent ?? d.current) * 1000).toStringAsFixed(1), unit: 'mA', label: AppStrings.t('dc_current'));
       final i4 = _StatCard(icon: '💰', iconBg: kOrange,
           value: cost.toStringAsFixed(4), unit: 'MAD', label: AppStrings.t('estimated_cost'));
       if (m) {
@@ -879,13 +907,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ]);
     }
     // AC unit (Unit 1) — full metrics
+    final double vFor = displayVoltage ?? d.voltage;
+    final double iFor = displayCurrent ?? d.current;
+    final apparentFor = (vFor * iFor).toStringAsFixed(1);
+    final reactiveFor = ( (vFor * iFor) * (vFor * iFor) - (d.power * d.power) > 0 ? ((vFor * iFor) * (vFor * iFor) - (d.power * d.power)).toStringAsFixed(1) : '0.0');
     final a1 = _StatCard(icon: '📐', iconBg: const Color(0xFF9B59B6),
-        value: d.apparentPower.toStringAsFixed(1), unit: 'VA', label: AppStrings.t('apparent_power'));
+      value: apparentFor, unit: 'VA', label: AppStrings.t('apparent_power'));
     final a2 = _StatCard(icon: '🌀', iconBg: const Color(0xFF1ABC9C),
-        value: d.reactivePower.toStringAsFixed(1), unit: 'VAR', label: AppStrings.t('reactive_power'),
-        alert: d.hasHighReactivePower);
+      value: d.reactivePower.toStringAsFixed(1), unit: 'VAR', label: AppStrings.t('reactive_power'),
+      alert: d.hasHighReactivePower);
     final a3 = _StatCard(icon: '🎵', iconBg: const Color(0xFF3498DB),
-        value: d.frequency.toStringAsFixed(2), unit: 'Hz', label: AppStrings.t('frequency'));
+      value: d.frequency.toStringAsFixed(2), unit: 'Hz', label: AppStrings.t('frequency'));
     final a4 = _StatCard(icon: '💰', iconBg: kOrange,
         value: cost.toStringAsFixed(2), unit: 'MAD', label: AppStrings.t('estimated_cost'));
     if (m) {

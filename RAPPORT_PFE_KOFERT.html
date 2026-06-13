@@ -203,7 +203,7 @@
   <li><a href="#app"><span class="section-number">6.</span> Application Flutter Web — Structure et Fonctionnalités</a></li>
   <li><a href="#security"><span class="section-number">7.</span> Sécurité et Contrôle d'Accès</a></li>
   <li><a href="#notifications"><span class="section-number">8.</span> Système de Notifications et Rapports Automatiques</a></li>
-  <li><a href="#ia"><span class="section-number">9.</span> Module de Prédiction par Intelligence Artificielle</a></li>
+  <li><a href="#ia"><span class="section-number">9.</span> Module de Prévision Energitique</a></li>
   <li><a href="#chat"><span class="section-number">10.</span> Messagerie Temps Réel et Collaboration</a></li>
   <li><a href="#maintenance"><span class="section-number">11.</span> Gestion de la Maintenance <span class="updated-badge">ENRICHI</span></a></li>
   <li><a href="#userlogs"><span class="section-number">11bis.</span> Journal d'Activité Utilisateur <span class="new-badge">NOUVEAU</span></a></li>
@@ -221,7 +221,7 @@
 <h1 id="resume">Résumé Exécutif</h1>
 <div class="abstract">
 <p>Ce rapport présente le développement intégral d'un système de supervision énergétique industriel temps réel, conçu et déployé pour le site KOFERT du Groupe OCP. Le projet couvre l'ensemble de la chaîne de valeur numérique : depuis la collecte des données physiques par des microcontrôleurs ESP32 et des capteurs de type PZEM-004T, en passant par leur transmission vers le cloud Firebase, jusqu'à leur visualisation dans une application web développée avec le framework Flutter.</p>
-<p>L'application, déployée en production sur Firebase Hosting à l'adresse <strong>https://ocp-energy-monitor.web.app</strong>, surveille trois unités industrielles distinctes (Lampe AC, Ventilateur DC 5V, Pompe à eau DC 5V), offre un tableau de bord temps réel, un historique exportable avec envoi par email intelligent (sélection du destinataire), des alertes paramétrables, un module de prédiction par IA, un journal de maintenance intégré avec rapport complet (problème + solution + pièce jointe), téléchargement PDF, notifications email enrichies, et un système de messagerie collaborative entre opérateurs.</p>
+<p>L'application, déployée en production sur Firebase Hosting à l'adresse <strong>https://ocp-energy-monitor.web.app</strong>, surveille trois unités industrielles distinctes (Lampe AC, Ventilateur DC 5V, Pompe à eau DC 5V), offre un tableau de bord temps réel, un historique exportable avec envoi par email intelligent (sélection du destinataire), des alertes paramétrables, un module de Prévision Energitique, un journal de maintenance intégré avec rapport complet (problème + solution + pièce jointe), téléchargement PDF, notifications email enrichies, et un système de messagerie collaborative entre opérateurs.</p>
 <p><strong>Technologies clés :</strong> Flutter 3.x · Dart SDK ^3.11.4 · Firebase (Auth, Firestore, Realtime Database, Hosting, Cloud Functions) · EmailJS · Syncfusion · Node.js · dart:html</p>
 <p><strong>Améliorations de la version finale :</strong> dialogue email historique avec sélection d'adresse (propre compte ou autre) ; rapport de résolution de maintenance complet (problème, solution, pièce jointe) ; visualisation et téléchargement PDF des rapports ; notifications email de résolution enrichies ; interface responsive mobile ; <strong>journal d'activité utilisateur complet</strong> (audit trail persistant avec auto-rafraîchissement) ; <strong>traçabilité des contrôles pompe/ventilateur</strong> ; <strong>journalisation des changements de rôle</strong> ; règles RTDB déployées pour contrôle opérateur sur toutes les unités.</p>
 </div>
@@ -242,7 +242,7 @@
   <li><strong>Visualisation temps réel</strong> : afficher les paramètres électriques (tension, courant, puissance active, facteur de puissance, énergie, fréquence) de chaque unité toutes les secondes.</li>
   <li><strong>Alertes intelligentes</strong> : détecter automatiquement les anomalies (surtension, sous-tension, surintensité, facteur de puissance faible) et notifier par email l'ensemble des opérateurs.</li>
   <li><strong>Historique et export</strong> : permettre la consultation des données historiques avec filtres temporels et export Excel ou email.</li>
-  <li><strong>Prédiction IA</strong> : estimer la consommation et les coûts futurs par régression linéaire sur les données historiques.</li>
+  <li><strong>Prévision Energitique</strong> : estimer la consommation et les coûts futurs par régression linéaire sur les données historiques.</li>
   <li><strong>Maintenance</strong> : gérer un journal des interventions techniques avec assignation de responsabilités et notifications automatiques.</li>
   <li><strong>Collaboration</strong> : offrir un espace de messagerie interne (chat global et messages directs) entre les membres de l'équipe technique.</li>
 </ul>
@@ -258,7 +258,7 @@
   <tr><td>BF-02</td><td>Multi-unités : 3 équipements distincts avec switching</td><td>Critique</td></tr>
   <tr><td>BF-03</td><td>Historique des mesures avec filtrage par date et export</td><td>Haute</td></tr>
   <tr><td>BF-04</td><td>Système d'alertes paramétrables avec email</td><td>Haute</td></tr>
-  <tr><td>BF-05</td><td>Prédiction de consommation et de coûts</td><td>Moyenne</td></tr>
+  <tr><td>BF-05</td><td>Prévision de consommation et de coûts</td><td>Moyenne</td></tr>
   <tr><td>BF-06</td><td>Résumé journalier et mensuel</td><td>Moyenne</td></tr>
   <tr><td>BF-07</td><td>Comparaison des 3 unités simultanément</td><td>Moyenne</td></tr>
   <tr><td>BF-08</td><td>Contrôle actif (vitesse ventilateur, pompe ON/OFF)</td><td>Haute</td></tr>
@@ -510,7 +510,7 @@ kofert_dashboard/lib/
 │   ├── firestore_log_service.dart← Persistence Firestore throttlée
 │   ├── alert_notification_service.dart ← Notifications email alertes/maintenance
 │   ├── auto_report_service.dart ← Rapports automatiques côté client
-│   ├── energy_predictor.dart    ← Module IA de prédiction
+│   ├── energy_predictor.dart    ← Module IA de prévision
 │   └── presence_service.dart   ← Présence utilisateur temps réel
 ├── theme/
 │   ├── app_theme.dart           ← ThemeData light/dark
@@ -556,7 +556,7 @@ final languageNotifier      = ValueNotifier&lt;String&gt;('fr');
   <li><strong>Sélection d'unité</strong> incluant une vue "Toutes unités" avec superposition des courbes.</li>
   <li><strong>Export Excel</strong> : génération d'un fichier .xlsx (bibliothèque <code>excel</code>) téléchargeable directement depuis le navigateur.</li>
   <li><strong>Envoi par email intelligent</strong> via EmailJS : sélection entre "Mon email" (compte connecté) ou "Autre adresse" — voir section 6.5.1.</li>
-  <li><strong>Module IA</strong> : calcul et affichage des prédictions de coût et de facteur de puissance.</li>
+  <li><strong>Module IA</strong> : calcul et affichage des prévisions de coût et de facteur de puissance.</li>
 </ul>
 
 <h3>6.5.1 Dialogue d'Envoi par Email — Sélection Intelligente du Destinataire <span class="new-badge">NOUVEAU</span></h3>
@@ -857,18 +857,18 @@ const message =
 
 <!-- ═══════════════════════════════════════════════════════ CHAPTER 9 -->
 <div class="page-break"></div>
-<h1 id="ia">9. Module de Prédiction par Intelligence Artificielle</h1>
+<h1 id="ia">9. Module de Prévision Energitique</h1>
 
 <h2>9.1 Principe et Justification</h2>
-<p>Le module d'IA est implémenté dans la classe <code>EnergyPredictor</code>. Il utilise des méthodes de <strong>régression linéaire</strong> et d'<strong>extrapolation temporelle</strong> sur les données historiques collectées par Firebase.</p>
+<p>Le module de prévision énergétique est implémenté dans la classe <code>EnergyPredictor</code>. Il utilise des méthodes de <strong>régression linéaire</strong> et d'<strong>extrapolation temporelle</strong> sur les données historiques collectées par Firebase.</p>
 <p>Ce choix (plutôt que du deep learning) est justifié par :</p>
 <ul>
   <li>La nature des données : la consommation énergétique industrielle tend à être linéairement corrélée au temps et aux cycles de production.</li>
   <li>La contrainte d'exécution côté client (navigateur web) : les modèles lourds (TensorFlow, PyTorch) ne sont pas adaptés.</li>
-  <li>La faible latence souhaitée : la prédiction doit s'afficher en temps réel lors du chargement de l'historique.</li>
+  <li>La faible latence souhaitée : la prévision doit s'afficher en temps réel lors du chargement de l'historique.</li>
 </ul>
 
-<h2>9.2 Fonctionnalités de Prédiction</h2>
+<h2>9.2 Fonctionnalités de Prévision</h2>
 <p>La méthode <code>predict(List&lt;EnergyData&gt; data)</code> retourne un objet <code>PredictionResult</code> contenant :</p>
 <table>
   <tr><th>Champ</th><th>Description</th></tr>
@@ -880,20 +880,20 @@ const message =
   <tr><td><code>pfWillDropBelow</code></td><td>Booléen : le PF va-t-il descendre sous le seuil configuré ?</td></tr>
   <tr><td><code>minutesUntilPfDrop</code></td><td>Minutes avant la chute du PF (null si aucune chute prévue)</td></tr>
   <tr><td><code>pfTrend</code></td><td>Tendance : "rising" / "stable" / "falling"</td></tr>
-  <tr><td><code>costConfidence</code></td><td>Indice de confiance 0–1 pour la prédiction de coût</td></tr>
-  <tr><td><code>pfConfidence</code></td><td>Indice de confiance 0–1 pour la prédiction PF</td></tr>
+  <tr><td><code>costConfidence</code></td><td>Indice de confiance 0–1 pour la prévision du coût</td></tr>
+  <tr><td><code>pfConfidence</code></td><td>Indice de confiance 0–1 pour la prévision PF</td></tr>
 </table>
 
 <h2>9.3 Algorithme</h2>
-<p>L'algorithme se déroule en deux phases :</p>
-<h4>Phase 1 — Prédiction des coûts</h4>
+<p>L'algorithme de prévision se déroule en deux phases :</p>
+<h4>Phase 1 — Prévision des coûts</h4>
 <ol>
   <li>Calcul de la consommation d'énergie sur la fenêtre historique disponible.</li>
   <li>Extrapolation linéaire sur 24h et sur les jours restants du mois.</li>
   <li>Multiplication par le tarif électrique (<code>tariffRate</code> en MAD/kWh).</li>
   <li>Calcul de la confiance selon la densité temporelle des données (points par heure).</li>
 </ol>
-<h4>Phase 2 — Prédiction du facteur de puissance</h4>
+<h4>Phase 2 — Prévision du facteur de puissance</h4>
 <ol>
   <li>Extraction des 20 dernières valeurs de PF.</li>
   <li>Régression linéaire (moindres carrés) sur la série temporelle.</li>
@@ -1559,7 +1559,7 @@ ConstrainedBox(
   <tr><td>Application Flutter Web déployée</td><td>✅ Production</td><td>https://ocp-energy-monitor.web.app</td></tr>
   <tr><td>Tableau de bord temps réel (3 unités)</td><td>✅ Opérationnel</td><td>Dashboard Screen</td></tr>
   <tr><td>Historique + Export Excel + Email</td><td>✅ Opérationnel</td><td>Historical Screen</td></tr>
-  <tr><td>Prédiction IA (coûts + PF)</td><td>✅ Opérationnel</td><td>Historical Screen</td></tr>
+  <tr><td>Prévision Energitique (coûts + PF)</td><td>✅ Opérationnel</td><td>Historical Screen</td></tr>
   <tr><td>Résumé journalier / mensuel</td><td>✅ Opérationnel</td><td>Summary Screen</td></tr>
   <tr><td>Comparaison multi-unités</td><td>✅ Opérationnel</td><td>Comparison Screen</td></tr>
   <tr><td>Journal d'alertes + Email throttlé</td><td>✅ Opérationnel</td><td>Alerts Screen</td></tr>
@@ -1614,7 +1614,7 @@ ConstrainedBox(
   <li><strong>Module de rapport PDF serveur</strong> : générer des rapports PDF haute fidélité avec graphiques Syncfusion via Puppeteer (Cloud Function Node.js) — pour des rapports plus complexes que le print navigateur.</li>
   <li><strong>Firebase Storage pour les pièces jointes</strong> : remplacer le stockage Base64 dans Firestore par Firebase Storage pour les pièces jointes, afin d'éviter la limite de 1 MB par document Firestore.</li>
   <li><strong>Signature numérique des rapports de maintenance</strong> : horodatage blockchain ou signature HMAC pour garantir l'intégrité des rapports d'intervention.</li>
-  <li><strong>Modèles d'IA plus avancés</strong> : intégrer TensorFlow.js ou Google Vertex AI pour des prédictions LSTM sur les séries temporelles longues.</li>
+  <li><strong>Modèles d'IA plus avancés</strong> : intégrer TensorFlow.js ou Google Vertex AI pour des prévisions LSTM sur les séries temporelles longues.</li>
   <li><strong>Migration vers Firebase Data Connect (PostgreSQL)</strong> : pour les analyses complexes, SQL relationnel avec Firebase Data Connect est plus adapté que Firestore.</li>
 </ul>
 
@@ -1634,7 +1634,7 @@ ConstrainedBox(
 
 <p>Du point de vue technique, ce stage a nécessité la maîtrise d'une pile technologique moderne et exigeante : le framework Flutter pour le développement d'interfaces web haute-performance, Firebase pour l'ensemble des services cloud (base de données temps réel, Firestore, authentification, fonctions serverless, hébergement), la programmation des microcontrôleurs ESP32 pour l'acquisition de données industrielles, et les bonnes pratiques de sécurité (RBAC, Secret Manager, règles Firestore).</p>
 
-<p>Du point de vue fonctionnel, l'application livrée répond à l'intégralité des besoins identifiés en phase d'analyse : visualisation temps réel, alertes intelligentes avec notifications email, prédiction par IA, journal de maintenance complet avec formulaire de rapport (problème, solution, pièce jointe), visualisation et téléchargement PDF des rapports, dialogue email historique avec sélection intelligente du destinataire, interface responsive adaptée aux mobiles, et rapports automatiques planifiés.</p>
+<p>Du point de vue fonctionnel, l'application livrée répond à l'intégralité des besoins identifiés en phase d'analyse : visualisation temps réel, alertes intelligentes avec notifications email, Prévision Energitique, journal de maintenance complet avec formulaire de rapport (problème, solution, pièce jointe), visualisation et téléchargement PDF des rapports, dialogue email historique avec sélection intelligente du destinataire, interface responsive adaptée aux mobiles, et rapports automatiques planifiés.</p>
 
 <p>Ce projet illustre comment les technologies cloud-natives modernes (Firebase, Flutter) permettent de développer des applications industrielles robustes, sécurisées et évolutives, avec des délais et des coûts maîtrisés, tout en maintenant des standards de qualité élevés.</p>
 

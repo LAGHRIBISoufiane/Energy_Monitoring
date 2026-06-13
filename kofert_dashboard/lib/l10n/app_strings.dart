@@ -95,7 +95,7 @@ class AppStrings {
       'apply_filter': 'Appliquer',
       'export_excel': 'Exporter Excel',
       'send_email': 'Envoyer par email',
-      'predictions': 'Prédictions',
+      'predictions': 'Prévisions',
       '2h_forecast': 'Prévision 2 h',
       'pf_warning': 'Avertissement FP',
       // Profile
@@ -283,7 +283,7 @@ class AppStrings {
       'chart_evolution': 'Évolution',
       'last_readings': 'Dernières Mesures',
       'no_data_range': 'Aucune donnée pour cette période',
-      'ai_predictions': 'Prédictions IA',
+      'ai_predictions': 'Prévision Energitique',
       'ai_model_subtitle': 'Régression linéaire',
       'confidence': 'Confiance',
       'pf_stable': 'FP stable',

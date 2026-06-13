@@ -609,7 +609,7 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
 
       // ── Predictions HTML ──────────────────────────────────────────────────
       final predHtml = pred == null
-          ? '<p style="color:#888;font-style:italic">Données insuffisantes pour les prédictions.</p>'
+          ? '<p style="color:#888;font-style:italic">Données insuffisantes pour les prévisions.</p>'
           : '''
 <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px">
   <tr style="background:#1a3a5c">
@@ -731,7 +731,7 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
   $invoicePredHtml
 </table>
 
-<h3 style="color:#1a3a5c;margin:20px 0 12px">&#129302; Prédictions IA — Régression Linéaire</h3>
+<h3 style="color:#1a3a5c;margin:20px 0 12px">&#129302; Prévision Energitique — Régression Linéaire</h3>
 $predHtml
 
 <h3 style="color:#1a3a5c;margin:20px 0 12px">&#128203; Échantillon des données ($sampleLabel)</h3>
@@ -855,7 +855,7 @@ $predHtml
 
       // Predictions sheet
       if (_predictions != null) {
-        final pSheet = excel['Prédictions IA'];
+        final pSheet = excel['Prévision Energitique'];
         pSheet.appendRow([xl.TextCellValue('Indicateur'), xl.TextCellValue('Valeur')]);
         pSheet.appendRow([xl.TextCellValue('Coût prochain jour (MAD)'), xl.DoubleCellValue(_predictions!.nextDayCost)]);
         pSheet.appendRow([xl.TextCellValue('Energie prochain jour (mWh)'), xl.DoubleCellValue(_predictions!.nextDayEnergyMwh)]);

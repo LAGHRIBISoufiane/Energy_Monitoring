@@ -38,5 +38,6 @@
             ],
             "args": []
         }
-    }
+    },
+    "C_Cpp.default.compilerPath": "c:\\Users\\riosh\\Documents\\Energy_Monitoring\\EnergyMonitoringESP32\\EnergyMonitoringESP32.ino"
 }

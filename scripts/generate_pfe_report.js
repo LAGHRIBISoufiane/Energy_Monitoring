@@ -218,7 +218,7 @@ const doc = new Document({
         spacing: { after: 400 },
       }),
       new Paragraph({
-        children: [new TextRun({ text: 'Application Web Flutter — Firebase — Prédictions IA', size: 24, color: COLOR.gray })],
+        children: [new TextRun({ text: 'Application Web Flutter — Firebase — Prévision Energitique', size: 24, color: COLOR.gray })],
         alignment: AlignmentType.CENTER,
         spacing: { after: 800 },
       }),
@@ -245,7 +245,7 @@ const doc = new Document({
         ['2.', 'Présentation Générale du Projet'],
         ['3.', 'Architecture Technique'],
         ['4.', 'Fonctionnalités Développées'],
-        ['5.', "Module d'Intelligence Artificielle — Prédictions Énergétiques"],
+        ['5.', "Module d'Intelligence Artificielle — Prévision Energitique"],
         ['6.', 'Sécurité et Contrôle d\'Accès'],
         ['7.', 'Infrastructure et Déploiement'],
         ['8.', 'Service de Rapport Automatique'],
@@ -385,7 +385,7 @@ const doc = new Document({
       bullet("Export automatique déclenché lors de l'envoi d'email"),
       h3('Rapports Email (EmailJS) :'),
       bullet("Facture énergétique : énergie totale, tarif (MAD/mWh), coût estimé, projections mensuelles"),
-      bullet("Prédictions IA : énergie prévue J+1, J+7, J+30 ; coût mensuel prévu ; niveau de confiance (%)"),
+      bullet("Prévision Energitique : énergie prévue J+1, J+7, J+30 ; coût mensuel prévu ; niveau de confiance (%)"),
       bullet("Tableau de données : 20 échantillons avec horodatage, puissance, tension, courant, cos φ"),
       bullet("Colonne « Unité » si la vue ALL_UNITS est active"),
       new Paragraph({ text: '', spacing: { after: 80 } }),
@@ -441,7 +441,7 @@ const doc = new Document({
       //  5. MODULE IA
       // ══════════════════════════════════════════════
       pageBreak(),
-      h1("5. Module d'Intelligence Artificielle — Prédictions Énergétiques"),
+      h1("5. Module d'Intelligence Artificielle — Prévision Energitique"),
       separator(),
 
       h2('5.1 Modèle Utilisé'),
@@ -454,9 +454,9 @@ const doc = new Document({
       bullet("La transparence et l'interprétabilité des résultats"),
       new Paragraph({ text: '', spacing: { after: 80 } }),
 
-      h2('5.2 Prédictions Générées'),
+      h2('5.2 Prévisions Générées'),
       makeTable(
-        ['Prédiction', 'Description'],
+        ['Prévision', 'Description'],
         [
           ['Énergie J+1', 'Énergie prévue sur les 24 prochaines heures (mWh)'],
           ['Coût J+1', 'nextDayEnergyMwh × tarif (MAD)'],
@@ -478,7 +478,7 @@ const doc = new Document({
       para(
         "Grâce aux 19 200 données historiques injectées dans Firestore (simulation sur 30 jours, " +
         "intervalle 5 minutes), chaque unité dispose de ~6 400 lectures, garantissant un niveau de " +
-        "confiance de 100% pour toutes les prédictions de coût."
+        "confiance de 100% pour toutes les prévisions de coût."
       ),
 
       h2('5.4 Données de Simulation'),
@@ -608,9 +608,9 @@ const doc = new Document({
           ['Application déployée en production', '✅  https://ocp-energy-monitor.web.app'],
           ['Supervision temps réel 3 unités', '✅  WebSocket Firebase Realtime Database'],
           ['Historique Firestore (time-series)', '✅  19 200 documents injectés'],
-          ['Prédictions IA (confiance 100%)', '✅  Régression linéaire opérationnelle'],
+          ['Prévision Energitique (confiance 100%)', '✅  Régression linéaire opérationnelle'],
           ['Exports CSV et Excel', '✅  Téléchargement navigateur côté client'],
-          ['Rapports email HTML automatisés', '✅  EmailJS + facture + prédictions IA'],
+          ['Rapports email HTML automatisés', '✅  EmailJS + facture + Prévision Energitique'],
           ["Contrôle d'accès RBAC complet", '✅  5 rôles, règles Firestore déployées'],
           ['Messagerie intégrée', '✅  Chat global + DM + présence temps réel'],
           ['Multilingue (FR / EN / AR)', '✅  flutter_localizations opérationnel'],
@@ -636,7 +636,7 @@ const doc = new Document({
           ['Frontend', 'Flutter Web, Dart 3.x, Syncfusion Charts & Gauges, Material Design'],
           ['Backend / BaaS', 'Firebase Auth, Realtime Database, Cloud Firestore, Data Connect'],
           ['Sécurité', 'RBAC, Security Rules Firestore, JWT Firebase, vérification email'],
-          ['Machine Learning', 'Régression linéaire, prédictions de séries temporelles, calcul R²'],
+          ['Machine Learning', 'Régression linéaire, prévisions de séries temporelles, calcul R²'],
           ['Intégrations', 'EmailJS REST API, Excel package, QR codes, SharedPreferences'],
           ['DevOps', 'Firebase CLI, build Flutter Web, CDN Hosting, indexes Firestore'],
           ['UX/UI', 'Thème sombre personnalisé, multilingue, responsive, jauges temps réel'],
@@ -647,7 +647,7 @@ const doc = new Document({
       para(
         "Le système répond pleinement aux besoins exprimés par KOFERT : centralisation de la supervision, " +
         "réduction des interventions manuelles grâce aux alertes automatiques, anticipation des dérives " +
-        "énergétiques par les prédictions IA, et traçabilité complète via les rapports email et exports Excel."
+        "énergétiques par la Prévision Energitique, et traçabilité complète via les rapports email et exports Excel."
       ),
       new Paragraph({
         children: [new TextRun({ text: '', break: 2 })],

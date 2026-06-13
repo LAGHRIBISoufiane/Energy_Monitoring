@@ -226,18 +226,43 @@ class FirestoreLogService {
     final start = DateTime(day.year, day.month, day.day);
     final end = start.add(const Duration(days: 1));
 
-    final snap = await _db
-        .collection('sensor_readings')
-        .where('unitId', isEqualTo: unitId)
-        .where('timestamp',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(start),
-            isLessThan: Timestamp.fromDate(end))
-        .get();
+    // Read all readings for the day ordered by time (ascending) and compute
+    // consumption as the sum of positive deltas between consecutive meter
+    // readings. This avoids summing cumulative meter values which produced
+    // inflated daily totals when the sensor reports an ever-increasing total.
+    try {
+      final snap = await _db
+          .collection('sensor_readings')
+          .where('unitId', isEqualTo: unitId)
+          .where('timestamp',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(start),
+              isLessThan: Timestamp.fromDate(end))
+          .orderBy('timestamp', descending: false)
+          .get();
 
-    double total = 0;
-    for (final doc in snap.docs) {
-      total += (doc.data()['energy'] as num?)?.toDouble() ?? 0;
+      double total = 0.0;
+      double? prevEnergy;
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final energy = (data['energy'] as num?)?.toDouble(); // mWh
+        final power = (data['power'] as num?)?.toDouble() ?? 0.0; // W
+        if (energy == null) continue;
+        if (prevEnergy == null) {
+          prevEnergy = energy;
+          continue;
+        }
+        final delta = energy - prevEnergy;
+        prevEnergy = energy;
+        // Ignore negative deltas (meter reset) and very large spikes.
+        if (delta <= 0) continue;
+        if (delta > 1e9) continue;
+        // Only count increments when device is actually consuming power.
+        if (power <= 0.5) continue;
+        total += delta;
+      }
+      return (totalEnergy: total, count: snap.size);
+    } catch (_) {
+      return (totalEnergy: 0.0, count: 0);
     }
-    return (totalEnergy: total, count: snap.size);
   }
 }
