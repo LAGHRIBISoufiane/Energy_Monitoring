@@ -481,6 +481,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // home screen shows real-time consumption rather than the raw cumulative
     // meter value which led to inflated daily sums.
     final double displayEnergyMWh = _sessionEnergyMWh > 0 ? _sessionEnergyMWh : d.energy;
+    final double displayPower = isIdle ? 0.0 : d.power;
     return LayoutBuilder(builder: (context, constraints) {
       final m = constraints.maxWidth < 600;
       return SingleChildScrollView(
@@ -494,9 +495,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _buildAlertBanner(d),
               const SizedBox(height: 20),
             ],
-            _buildStatRow1(d, m, displayVoltage: displayVoltage, displayCurrent: displayCurrent, displayEnergyMWh: displayEnergyMWh),
+            _buildStatRow1(d, m, displayVoltage: displayVoltage, displayCurrent: displayCurrent, displayPower: displayPower, displayEnergyMWh: displayEnergyMWh),
             const SizedBox(height: 14),
-            _buildStatRow2(d, m, displayVoltage: displayVoltage, displayCurrent: displayCurrent, displayEnergyMWh: displayEnergyMWh),
+            _buildStatRow2(d, m, displayVoltage: displayVoltage, displayCurrent: displayCurrent, displayPower: displayPower, displayEnergyMWh: displayEnergyMWh),
             ValueListenableBuilder<String>(
               valueListenable: roleNotifier,
               builder: (_, role, __) {
@@ -847,8 +848,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return ('0.00', 'kWh'); // near-zero — still show kWh unit
   }
 
-  Widget _buildStatRow1(EnergyData d, bool m, {double? displayVoltage, double? displayCurrent, double? displayEnergyMWh}) {
-    final (pVal, pUnit) = _cvtPower(d.power);
+  Widget _buildStatRow1(EnergyData d, bool m, {double? displayVoltage, double? displayCurrent, double? displayPower, double? displayEnergyMWh}) {
+    final (pVal, pUnit) = _cvtPower((displayPower ?? d.power));
     final energyForDisplay = displayEnergyMWh ?? d.energy;
     final (eVal, eUnit) = _cvtEnergy(energyForDisplay); // mWh
     final (vVal, vUnit) = _cvtVoltage(displayVoltage ?? d.voltage);
@@ -878,12 +879,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ]);
   }
 
-  Widget _buildStatRow2(EnergyData d, bool m, {double? displayVoltage, double? displayCurrent, double? displayEnergyMWh}) {
+  Widget _buildStatRow2(EnergyData d, bool m, {double? displayVoltage, double? displayCurrent, double? displayPower, double? displayEnergyMWh}) {
     final energyForDisplay = displayEnergyMWh ?? d.energy;
     final cost = (energyForDisplay / 1000000) * _tariffRate; // mWh ÷ 1M → kWh × MAD/kWh = MAD
     // INA219 units (Unit 2 fan 5 V DC, Unit 3 pump 5 V DC) — no AC metrics.
     if (d.isINA219) {
-      final powerMw = d.power * 1000; // W → mW for display clarity at low wattage
+      final powerMw = (displayPower ?? d.power) * 1000; // W → mW for display clarity at low wattage
       final i1 = _StatCard(icon: '🔬', iconBg: const Color(0xFF9B59B6),
           value: 'INA219', unit: 'DC', label: AppStrings.t('dc_sensor'));
       final i2 = _StatCard(icon: '⚡', iconBg: const Color(0xFF1ABC9C),
@@ -910,7 +911,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final double vFor = displayVoltage ?? d.voltage;
     final double iFor = displayCurrent ?? d.current;
     final apparentFor = (vFor * iFor).toStringAsFixed(1);
-    final reactiveFor = ( (vFor * iFor) * (vFor * iFor) - (d.power * d.power) > 0 ? ((vFor * iFor) * (vFor * iFor) - (d.power * d.power)).toStringAsFixed(1) : '0.0');
+    final reactiveFor = ( (vFor * iFor) * (vFor * iFor) - ((displayPower ?? d.power) * (displayPower ?? d.power)) > 0 ? ((vFor * iFor) * (vFor * iFor) - ((displayPower ?? d.power) * (displayPower ?? d.power))).toStringAsFixed(1) : '0.0');
     final a1 = _StatCard(icon: '📐', iconBg: const Color(0xFF9B59B6),
       value: apparentFor, unit: 'VA', label: AppStrings.t('apparent_power'));
     final a2 = _StatCard(icon: '🌀', iconBg: const Color(0xFF1ABC9C),
