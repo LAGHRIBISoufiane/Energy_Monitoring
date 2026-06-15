@@ -1,5 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/energy_data.dart';
+import '../utils/energy_format.dart';
+
+typedef EnergyPeriodSummary = ({
+  double totalEnergy,
+  double? firstEnergy,
+  double? lastEnergy,
+  int count,
+});
 
 /// Persists sensor readings from the Realtime Database into Firestore.
 ///
@@ -26,8 +34,7 @@ class FirestoreLogService {
     final now = DateTime.now();
 
     final last = _lastWrite[unitId];
-    if (last != null &&
-        now.difference(last).inSeconds < _throttleSeconds) {
+    if (last != null && now.difference(last).inSeconds < _throttleSeconds) {
       return; // throttled
     }
     _lastWrite[unitId] = now;
@@ -62,9 +69,18 @@ class FirestoreLogService {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   Map<String, dynamic> _toFirestore(EnergyData d) {
+    final dayKey =
+        '${d.timestamp.year.toString().padLeft(4, '0')}-'
+        '${d.timestamp.month.toString().padLeft(2, '0')}-'
+        '${d.timestamp.day.toString().padLeft(2, '0')}';
+    final monthKey =
+        '${d.timestamp.year.toString().padLeft(4, '0')}-'
+        '${d.timestamp.month.toString().padLeft(2, '0')}';
     final base = <String, dynamic>{
       'unitId': d.unitId,
       'timestamp': Timestamp.fromDate(d.timestamp),
+      'dayKey': dayKey,
+      'monthKey': monthKey,
       'voltage': d.voltage,
       'current': d.current,
       'powerFactor': d.powerFactor,
@@ -75,7 +91,7 @@ class FirestoreLogService {
     // Power and energy for all units
     base['power'] = d.power;
     // Store energy as mWh (internal unit) — consistent with all historical records
-    base['energy'] = d.energy;
+    base['energy'] = normalizeStoredEnergyMwh(d.energy, d.unitId);
 
     // AC-only fields (KOFERT_Unit_1 / PZEM)
     if (!d.isINA219) {
@@ -110,12 +126,16 @@ class FirestoreLogService {
         .orderBy('timestamp', descending: true);
 
     if (from != null) {
-      query = query.where('timestamp',
-          isGreaterThanOrEqualTo: Timestamp.fromDate(from));
+      query = query.where(
+        'timestamp',
+        isGreaterThanOrEqualTo: Timestamp.fromDate(from),
+      );
     }
     if (to != null) {
-      query =
-          query.where('timestamp', isLessThanOrEqualTo: Timestamp.fromDate(to));
+      query = query.where(
+        'timestamp',
+        isLessThanOrEqualTo: Timestamp.fromDate(to),
+      );
     }
 
     query = query.limit(limit);
@@ -130,8 +150,7 @@ class FirestoreLogService {
   Future<Map<String, Map<String, dynamic>>> getAllUnitStatuses() async {
     final snap = await _db.collection('unit_status').get();
     return {
-      for (final doc in snap.docs)
-        doc.id: {'id': doc.id, ...doc.data()},
+      for (final doc in snap.docs) doc.id: {'id': doc.id, ...doc.data()},
     };
   }
 
@@ -218,51 +237,96 @@ class FirestoreLogService {
     }
   }
 
-  /// Aggregate daily energy for [unitId] on [day] (UTC date).
-  /// Returns total energy (kWh sum of `energy` field) and reading count.
-  Future<({double totalEnergy, int count})> getDailyEnergy(
-      String unitId, DateTime day) async {
-    // Use local midnight boundaries so "a day" matches Morocco clock (GMT+1).
-    final start = DateTime(day.year, day.month, day.day);
-    final end = start.add(const Duration(days: 1));
-
-    // Read all readings for the day ordered by time (ascending) and compute
-    // consumption as the sum of positive deltas between consecutive meter
-    // readings. This avoids summing cumulative meter values which produced
-    // inflated daily totals when the sensor reports an ever-increasing total.
+  /// First cumulative meter reading for the month, in mWh.
+  ///
+  /// The dashboard subtracts this from the live meter value so the displayed
+  /// consumption resets automatically when a new month starts.
+  Future<double?> getMonthStartEnergy(String unitId, DateTime month) async {
+    final start = DateTime(month.year, month.month);
+    final end = DateTime(month.year, month.month + 1);
     try {
       final snap = await _db
           .collection('sensor_readings')
           .where('unitId', isEqualTo: unitId)
-          .where('timestamp',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(start),
-              isLessThan: Timestamp.fromDate(end))
+          .where(
+            'timestamp',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(start),
+            isLessThan: Timestamp.fromDate(end),
+          )
+          .orderBy('timestamp', descending: false)
+          .limit(1)
+          .get();
+
+      if (snap.docs.isEmpty) return null;
+      final data = snap.docs.first.data();
+      final rawEnergy = (data['energy'] as num?)?.toDouble();
+      if (rawEnergy == null) return null;
+      return normalizeStoredEnergyMwh(rawEnergy, unitId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Aggregate consumption between [start] and [end] from cumulative meter readings.
+  Future<EnergyPeriodSummary> getPeriodEnergy(
+    String unitId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      final snap = await _db
+          .collection('sensor_readings')
+          .where('unitId', isEqualTo: unitId)
+          .where(
+            'timestamp',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(start),
+            isLessThan: Timestamp.fromDate(end),
+          )
           .orderBy('timestamp', descending: false)
           .get();
 
       double total = 0.0;
+      double? firstEnergy;
       double? prevEnergy;
+      double? lastEnergy;
+
       for (final doc in snap.docs) {
         final data = doc.data();
-        final energy = (data['energy'] as num?)?.toDouble(); // mWh
-        final power = (data['power'] as num?)?.toDouble() ?? 0.0; // W
-        if (energy == null) continue;
-        if (prevEnergy == null) {
-          prevEnergy = energy;
-          continue;
+        final rawEnergy = (data['energy'] as num?)?.toDouble();
+        if (rawEnergy == null) continue;
+
+        final energy = normalizeStoredEnergyMwh(rawEnergy, unitId);
+        firstEnergy ??= energy;
+        if (prevEnergy != null) {
+          total += sumPositiveEnergyDeltasMwh([prevEnergy, energy]);
         }
-        final delta = energy - prevEnergy;
         prevEnergy = energy;
-        // Ignore negative deltas (meter reset) and very large spikes.
-        if (delta <= 0) continue;
-        if (delta > 1e9) continue;
-        // Only count increments when device is actually consuming power.
-        if (power <= 0.5) continue;
-        total += delta;
+        lastEnergy = energy;
       }
-      return (totalEnergy: total, count: snap.size);
+
+      return (
+        totalEnergy: total,
+        firstEnergy: firstEnergy,
+        lastEnergy: lastEnergy,
+        count: snap.size,
+      );
     } catch (_) {
-      return (totalEnergy: 0.0, count: 0);
+      return (totalEnergy: 0.0, firstEnergy: null, lastEnergy: null, count: 0);
     }
+  }
+
+  /// Aggregate month-to-date consumption from cumulative meter readings.
+  Future<EnergyPeriodSummary> getMonthEnergy(String unitId, DateTime month) {
+    final start = DateTime(month.year, month.month);
+    final end = DateTime(month.year, month.month + 1);
+    return getPeriodEnergy(unitId, start, end);
+  }
+
+  /// Aggregate daily consumption for [unitId] on [day].
+  Future<EnergyPeriodSummary> getDailyEnergy(String unitId, DateTime day) {
+    // Use local midnight boundaries so "a day" matches Morocco clock (GMT+1).
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+    return getPeriodEnergy(unitId, start, end);
   }
 }

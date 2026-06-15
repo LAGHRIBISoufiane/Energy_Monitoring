@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -50,11 +48,14 @@ class _ChatScreenState extends State<ChatScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Messages',
-                    style: TextStyle(
-                        color: _c.textPri,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20)),
+                Text(
+                  'Messages',
+                  style: TextStyle(
+                    color: _c.textPri,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 TabBar(
                   controller: _tabs,
@@ -65,7 +66,10 @@ class _ChatScreenState extends State<ChatScreen>
                   tabs: const [
                     Tab(text: 'Global Chat'),
                     Tab(text: 'Messages Directs'),
-                    Tab(icon: Icon(Icons.people_alt_rounded, size: 16), text: 'En ligne'),
+                    Tab(
+                      icon: Icon(Icons.people_alt_rounded, size: 16),
+                      text: 'En ligne',
+                    ),
                   ],
                 ),
               ],
@@ -116,14 +120,18 @@ class _GlobalChatTabState extends State<_GlobalChatTab> {
   Future<String> _getMyName() async {
     final uid = _me?.uid;
     if (uid == null) return 'Anonyme';
-    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
     final email = _me?.email ?? '';
     final emailName = email.contains('@') ? email.split('@').first : email;
-    final fallback = _me?.displayName ?? (emailName.isNotEmpty ? emailName : 'Anonyme');
+    final fallback =
+        _me?.displayName ?? (emailName.isNotEmpty ? emailName : 'Anonyme');
     if (!doc.exists) return fallback;
     final d = doc.data()!;
     final first = d['firstName'] as String? ?? '';
-    final last  = d['lastName']  as String? ?? '';
+    final last = d['lastName'] as String? ?? '';
     return '$first $last'.trim().isEmpty ? fallback : '$first $last'.trim();
   }
 
@@ -133,13 +141,13 @@ class _GlobalChatTabState extends State<_GlobalChatTab> {
     setState(() => _isSending = true);
 
     try {
-      final name     = await _getMyName();
+      final name = await _getMyName();
       await FirebaseFirestore.instance.collection('global_chat').add({
-        'senderId':    _me!.uid,
-        'senderName':  name,
+        'senderId': _me!.uid,
+        'senderName': name,
         'senderEmail': _me?.email ?? '',
-        'text':        text,
-        'timestamp':   FieldValue.serverTimestamp(),
+        'text': text,
+        'timestamp': FieldValue.serverTimestamp(),
       });
       _msgCtrl.clear();
       // Scroll to bottom after a brief delay
@@ -155,8 +163,11 @@ class _GlobalChatTabState extends State<_GlobalChatTab> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'),
-                backgroundColor: const Color(0xFFE74C3C)));
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFE74C3C),
+          ),
+        );
       }
     }
     if (mounted) setState(() => _isSending = false);
@@ -176,13 +187,16 @@ class _GlobalChatTabState extends State<_GlobalChatTab> {
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
-                    child: CircularProgressIndicator(color: kTeal));
+                  child: CircularProgressIndicator(color: kTeal),
+                );
               }
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return Center(
-                  child: Text('No messages yet.\nBe the first to say hello!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: _c.textSec, fontSize: 14)),
+                  child: Text(
+                    'No messages yet.\nBe the first to say hello!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: _c.textSec, fontSize: 14),
+                  ),
                 );
               }
               final msgs = snapshot.data!.docs
@@ -192,8 +206,10 @@ class _GlobalChatTabState extends State<_GlobalChatTab> {
                 controller: _scroll,
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 itemCount: msgs.length,
-                itemBuilder: (_, i) =>
-                    _MessageBubble(msg: msgs[i], isMine: msgs[i].senderId == _me?.uid),
+                itemBuilder: (_, i) => _MessageBubble(
+                  msg: msgs[i],
+                  isMine: msgs[i].senderId == _me?.uid,
+                ),
               );
             },
           ),
@@ -207,46 +223,56 @@ class _GlobalChatTabState extends State<_GlobalChatTab> {
     return Container(
       color: _c.card,
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-      child: Row(children: [
-        Expanded(
-          child: TextField(
-            controller: _msgCtrl,
-            minLines: 1,
-            maxLines: 4,
-            textInputAction: TextInputAction.newline,
-            onSubmitted: (_) => _sendMessage(),
-            style: TextStyle(color: _c.textPri, fontSize: 14),
-            decoration: InputDecoration(
-              hintText: 'Write a message…',
-              hintStyle: TextStyle(color: _c.textSec, fontSize: 13),
-              filled: true,
-              fillColor: _c.inputFill,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _msgCtrl,
+              minLines: 1,
+              maxLines: 4,
+              textInputAction: TextInputAction.newline,
+              onSubmitted: (_) => _sendMessage(),
+              style: TextStyle(color: _c.textPri, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Write a message…',
+                hintStyle: TextStyle(color: _c.textSec, fontSize: 13),
+                filled: true,
+                fillColor: _c.inputFill,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none),
+                  borderSide: BorderSide.none,
+                ),
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 10),
-        GestureDetector(
-          onTap: _isSending ? null : _sendMessage,
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-                color: kTeal,
-                shape: BoxShape.circle),
-            child: _isSending
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.black87))
-                : const Icon(Icons.send_rounded,
-                    color: Colors.black87, size: 20),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: _isSending ? null : _sendMessage,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(color: kTeal, shape: BoxShape.circle),
+              child: _isSending
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.black87,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.send_rounded,
+                      color: Colors.black87,
+                      size: 20,
+                    ),
+            ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
@@ -277,7 +303,11 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
         setS(() => error = 'Entrez un nom, email ou #ID');
         return;
       }
-      setS(() { isSearching = true; error = null; results = []; });
+      setS(() {
+        isSearching = true;
+        error = null;
+        results = [];
+      });
 
       final myUid = FirebaseAuth.instance.currentUser?.uid;
 
@@ -285,7 +315,7 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
       UserRecord? toRecord(String id, Map<String, dynamic> data) {
         if (id == myUid) return null;
         final first = data['firstName'] as String? ?? '';
-        final last  = data['lastName']  as String? ?? '';
+        final last = data['lastName'] as String? ?? '';
         final fsDisplayName = data['displayName'] as String? ?? '';
         final email = data['email'] as String? ?? '';
         final fullName = '$first $last'.trim().isNotEmpty
@@ -294,8 +324,10 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
         final displayName = fullName.isNotEmpty
             ? fullName
             : email.contains('@')
-                ? email.split('@').first
-                : email.isNotEmpty ? email : id;
+            ? email.split('@').first
+            : email.isNotEmpty
+            ? email
+            : id;
         return UserRecord(
           uid: id,
           name: displayName,
@@ -330,8 +362,8 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
             if (r != null) found.add(r);
           }
         } else if (raw.length >= 20 &&
-                   !raw.contains(' ') &&
-                   RegExp(r'^[A-Za-z0-9]+$').hasMatch(raw)) {
+            !raw.contains(' ') &&
+            RegExp(r'^[A-Za-z0-9]+$').hasMatch(raw)) {
           // Looks like a Firebase UID — direct document lookup
           final doc = await FirebaseFirestore.instance
               .collection('users')
@@ -356,7 +388,7 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
           }
 
           final parts = raw.trim().split(RegExp(r'\s+'));
-          final seen  = <String>{};
+          final seen = <String>{};
 
           Future<void> rangeQuery(String field, String prefix) async {
             for (final v in variants(prefix)) {
@@ -378,20 +410,20 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
             // "Firstname Lastname" — search each part against its field
             await Future.wait([
               rangeQuery('firstName', parts[0]),
-              rangeQuery('lastName',  parts[1]),
+              rangeQuery('lastName', parts[1]),
               rangeQuery('displayName', raw),
             ]);
             // Also cross-check: firstName = parts[0] AND lastName = parts[1]
             // already captured above; additionally try reversed order
             await Future.wait([
               rangeQuery('firstName', parts[1]),
-              rangeQuery('lastName',  parts[0]),
+              rangeQuery('lastName', parts[0]),
             ]);
           } else {
             // Single token — try all name fields
             await Future.wait([
-              rangeQuery('firstName',   raw),
-              rangeQuery('lastName',    raw),
+              rangeQuery('firstName', raw),
+              rangeQuery('lastName', raw),
               rangeQuery('displayName', raw),
             ]);
           }
@@ -410,59 +442,96 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
           backgroundColor: c.card,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(children: [
-            Icon(Icons.person_search_rounded, color: kTeal),
-            const SizedBox(width: 10),
-            Text('Ajouter un utilisateur',
-                style: TextStyle(color: c.textPri, fontWeight: FontWeight.bold)),
-          ]),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.person_search_rounded, color: kTeal),
+              const SizedBox(width: 10),
+              Text(
+                'Ajouter un utilisateur',
+                style: TextStyle(color: c.textPri, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
           content: SizedBox(
             width: 340,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(
-                controller: ctrl,
-                autofocus: true,
-                style: TextStyle(color: c.textPri),
-                decoration: InputDecoration(
-                  hintText: 'Add by Email, UID or by FullName',
-                  hintStyle: TextStyle(color: c.textSec),
-                  prefixIcon: Icon(Icons.search_rounded, color: c.textSec, size: 20),
-                  filled: true,
-                  fillColor: c.bg,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: c.divider),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  style: TextStyle(color: c.textPri),
+                  decoration: InputDecoration(
+                    hintText: 'Add by Email, UID or by FullName',
+                    hintStyle: TextStyle(color: c.textSec),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: c.textSec,
+                      size: 20,
+                    ),
+                    filled: true,
+                    fillColor: c.bg,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: c.divider),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: kTeal),
+                    ),
+                    errorText: error,
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: kTeal),
-                  ),
-                  errorText: error,
+                  onChanged: (_) {
+                    if (error != null || results.isNotEmpty) {
+                      setS(() {
+                        error = null;
+                        results = [];
+                      });
+                    }
+                  },
+                  onSubmitted: (_) => doSearch(setS),
                 ),
-                onChanged: (_) {
-                  if (error != null || results.isNotEmpty) {
-                    setS(() { error = null; results = []; });
-                  }
-                },
-                onSubmitted: (_) => doSearch(setS),
-              ),
-              if (isSearching) ...[const SizedBox(height: 16),
-                const Center(child: SizedBox(height: 22, width: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: kTeal))),
+                if (isSearching) ...[
+                  const SizedBox(height: 16),
+                  const Center(
+                    child: SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: kTeal,
+                      ),
+                    ),
+                  ),
+                ],
+                if (results.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  ...results.map(
+                    (u) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: UserAvatar(
+                        uid: u.uid,
+                        fallbackName: u.name,
+                        radius: 18,
+                      ),
+                      title: Text(
+                        u.name,
+                        style: TextStyle(color: c.textPri, fontSize: 14),
+                      ),
+                      trailing: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: c.textSec,
+                      ),
+                      onTap: () => Navigator.pop(ctx, u),
+                    ),
+                  ),
+                ],
               ],
-              if (results.isNotEmpty) ...[const SizedBox(height: 10),
-                ...results.map((u) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: UserAvatar(uid: u.uid, fallbackName: u.name, radius: 18),
-                  title: Text(u.name,
-                      style: TextStyle(color: c.textPri, fontSize: 14)),
-                  trailing: Icon(Icons.arrow_forward_ios_rounded,
-                      size: 14, color: c.textSec),
-                  onTap: () => Navigator.pop(ctx, u),
-                )),
-              ],
-            ]),
+            ),
           ),
           actions: [
             TextButton(
@@ -472,8 +541,10 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: kTeal),
               onPressed: isSearching ? null : () => doSearch(setS),
-              child: const Text('Rechercher',
-                  style: TextStyle(color: Colors.black87)),
+              child: const Text(
+                'Rechercher',
+                style: TextStyle(color: Colors.black87),
+              ),
             ),
           ],
         ),
@@ -497,12 +568,11 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
           .doc(myUid)
           .get();
       String myName = FirebaseAuth.instance.currentUser?.displayName ?? '';
-      final String myEmail =
-          FirebaseAuth.instance.currentUser?.email ?? '';
+      final String myEmail = FirebaseAuth.instance.currentUser?.email ?? '';
       if (meDoc.exists) {
         final d = meDoc.data()!;
         final first = d['firstName'] as String? ?? '';
-        final last  = d['lastName']  as String? ?? '';
+        final last = d['lastName'] as String? ?? '';
         if ('$first $last'.trim().isNotEmpty) myName = '$first $last'.trim();
       }
       final batch = FirebaseFirestore.instance.batch();
@@ -514,11 +584,11 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
             .collection('list')
             .doc(u.uid),
         {
-          'uid':      u.uid,
-          'name':     u.name,
-          'email':    u.email,
+          'uid': u.uid,
+          'name': u.name,
+          'email': u.email,
           'customId': u.customId,
-          'addedAt':  FieldValue.serverTimestamp(),
+          'addedAt': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true),
       );
@@ -530,11 +600,11 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
             .collection('list')
             .doc(myUid),
         {
-          'uid':      myUid,
-          'name':     myName,
-          'email':    myEmail,
+          'uid': myUid,
+          'name': myName,
+          'email': myEmail,
           'customId': '',
-          'addedAt':  FieldValue.serverTimestamp(),
+          'addedAt': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true),
       );
@@ -552,10 +622,12 @@ class _DirectMessagesTabState extends State<_DirectMessagesTab> {
     }
     return Stack(
       children: [
-        _UserListView(onSelectUser: (u) async {
-          await _saveContact(u);
-          if (mounted) setState(() => _openDm = u);
-        }),
+        _UserListView(
+          onSelectUser: (u) async {
+            await _saveContact(u);
+            if (mounted) setState(() => _openDm = u);
+          },
+        ),
         Positioned(
           right: 20,
           bottom: 20,
@@ -579,19 +651,30 @@ class _UserListView extends StatelessWidget {
   final void Function(UserRecord) onSelectUser;
   const _UserListView({required this.onSelectUser});
 
+  String _chatId(String myUid, String peerUid) {
+    final ids = [myUid, peerUid]..sort();
+    return ids.join('_');
+  }
+
   Color _statusColor(String status) {
     switch (status) {
-      case 'online':  return kTeal;
-      case 'dnd':     return kOrange;
-      default:        return Colors.grey;
+      case 'online':
+        return kTeal;
+      case 'dnd':
+        return kOrange;
+      default:
+        return Colors.grey;
     }
   }
 
   IconData _statusIcon(String status) {
     switch (status) {
-      case 'online':  return Icons.circle;
-      case 'dnd':     return Icons.remove_circle;
-      default:        return Icons.circle_outlined;
+      case 'online':
+        return Icons.circle;
+      case 'dnd':
+        return Icons.remove_circle;
+      default:
+        return Icons.circle_outlined;
     }
   }
 
@@ -601,7 +684,9 @@ class _UserListView extends StatelessWidget {
     final myUid = FirebaseAuth.instance.currentUser?.uid;
 
     if (myUid == null) {
-      return Center(child: Text('Non connecté', style: TextStyle(color: c.textSec)));
+      return Center(
+        child: Text('Non connecté', style: TextStyle(color: c.textSec)),
+      );
     }
 
     return StreamBuilder<QuerySnapshot>(
@@ -619,31 +704,41 @@ class _UserListView extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.person_add_rounded,
-                    color: c.textSec.withValues(alpha: 0.3), size: 48),
+                Icon(
+                  Icons.person_add_rounded,
+                  color: c.textSec.withValues(alpha: 0.3),
+                  size: 48,
+                ),
                 const SizedBox(height: 12),
                 Text('Aucun contact.', style: TextStyle(color: c.textSec)),
                 const SizedBox(height: 6),
-                Text("Utilisez le bouton + pour ajouter quelqu'un.",
-                    style: TextStyle(color: c.textSec, fontSize: 12)),
+                Text(
+                  "Utilisez le bouton + pour ajouter quelqu'un.",
+                  style: TextStyle(color: c.textSec, fontSize: 12),
+                ),
               ],
             ),
           );
         }
 
-        final users = snapshot.data!.docs.map((d) {
-          final data = d.data() as Map<String, dynamic>;
-          final name     = data['name']     as String? ?? '';
-          final email    = data['email']    as String? ?? '';
-          final customId = data['customId'] as String? ?? '';
-          return UserRecord(uid: d.id, name: name, email: email, customId: customId);
-        }).toList();
+        final contacts = snapshot.data!.docs;
 
         return ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: users.length,
+          itemCount: contacts.length,
           itemBuilder: (_, i) {
-            final user = users[i];
+            final contactDoc = contacts[i];
+            final data = contactDoc.data() as Map<String, dynamic>;
+            final name = data['name'] as String? ?? '';
+            final email = data['email'] as String? ?? '';
+            final customId = data['customId'] as String? ?? '';
+            final lastReadAt = data['lastReadAt'] as Timestamp?;
+            final user = UserRecord(
+              uid: contactDoc.id,
+              name: name,
+              email: email,
+              customId: customId,
+            );
             return StreamBuilder<DocumentSnapshot>(
               // Live-stream the user's profile so name updates instantly
               stream: FirebaseFirestore.instance
@@ -656,10 +751,14 @@ class _UserListView extends StatelessWidget {
                 if (userSnap.hasData && userSnap.data!.exists) {
                   final d = userSnap.data!.data() as Map<String, dynamic>;
                   final first = d['firstName'] as String? ?? '';
-                  final last  = d['lastName']  as String? ?? '';
-                  final dn    = d['displayName'] as String? ?? '';
-                  final full  = '$first $last'.trim();
-                  liveName = full.isNotEmpty ? full : dn.isNotEmpty ? dn : user.name;
+                  final last = d['lastName'] as String? ?? '';
+                  final dn = d['displayName'] as String? ?? '';
+                  final full = '$first $last'.trim();
+                  liveName = full.isNotEmpty
+                      ? full
+                      : dn.isNotEmpty
+                      ? dn
+                      : user.name;
                 }
                 final liveUser = user.copyWith(name: liveName);
                 return StreamBuilder<Map<String, dynamic>>(
@@ -667,38 +766,81 @@ class _UserListView extends StatelessWidget {
                   builder: (context, presSnap) {
                     final status =
                         presSnap.data?['status'] as String? ?? 'offline';
-                    return ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                      leading: Stack(
-                        children: [
-                          UserAvatar(uid: liveUser.uid, fallbackName: liveUser.name),
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: Icon(
-                              _statusIcon(status),
-                              color: _statusColor(status),
-                              size: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                      title: Text(liveUser.name,
-                          style: TextStyle(
-                              color: c.textPri, fontWeight: FontWeight.w600)),
-                      subtitle: Text(
-                        status == 'online'
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('dm_chats')
+                          .doc(_chatId(myUid, liveUser.uid))
+                          .collection('messages')
+                          .orderBy('timestamp', descending: true)
+                          .limit(1)
+                          .snapshots(),
+                      builder: (context, msgSnap) {
+                        Map<String, dynamic>? latest;
+                        if (msgSnap.hasData && msgSnap.data!.docs.isNotEmpty) {
+                          latest =
+                              msgSnap.data!.docs.first.data()
+                                  as Map<String, dynamic>;
+                        }
+                        final latestSender =
+                            latest?['senderId'] as String? ?? '';
+                        final latestTs = latest?['timestamp'] as Timestamp?;
+                        final isUnread =
+                            latestSender.isNotEmpty &&
+                            latestSender != myUid &&
+                            latestTs != null &&
+                            (lastReadAt == null ||
+                                latestTs.toDate().isAfter(lastReadAt.toDate()));
+                        final statusLabel = status == 'online'
                             ? 'Online'
                             : status == 'dnd'
-                                ? 'Do Not Disturb'
-                                : 'Offline',
-                        style: TextStyle(
-                            color: _statusColor(status),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500),
-                      ),
-                      onTap: () => onSelectUser(liveUser.copyWith(presenceStatus: status)),
+                            ? 'Do Not Disturb'
+                            : 'Offline';
+
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 6,
+                          ),
+                          leading: Stack(
+                            children: [
+                              UserAvatar(
+                                uid: liveUser.uid,
+                                fallbackName: liveUser.name,
+                              ),
+                              Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: Icon(
+                                  _statusIcon(status),
+                                  color: _statusColor(status),
+                                  size: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                          title: Text(
+                            liveUser.name,
+                            style: TextStyle(
+                              color: c.textPri,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            isUnread ? 'Nouveau message' : statusLabel,
+                            style: TextStyle(
+                              color: isUnread ? kOrange : _statusColor(status),
+                              fontSize: 11,
+                              fontWeight: isUnread
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                          trailing: isUnread ? const _UnreadDmBadge() : null,
+                          onTap: () => onSelectUser(
+                            liveUser.copyWith(presenceStatus: status),
+                          ),
+                        );
+                      },
                     );
                   },
                 );
@@ -714,6 +856,31 @@ class _UserListView extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // DM Chat View
 // ─────────────────────────────────────────────────────────────────────────────
+class _UnreadDmBadge extends StatelessWidget {
+  const _UnreadDmBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 22,
+      height: 22,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        color: Color(0xFFE74C3C),
+        shape: BoxShape.circle,
+      ),
+      child: const Text(
+        '1',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
 class _DmChatView extends StatefulWidget {
   final UserRecord peer;
   final VoidCallback onBack;
@@ -726,7 +893,8 @@ class _DmChatView extends StatefulWidget {
 class _DmChatViewState extends State<_DmChatView> {
   AppColors get _c => AppColors.of(context);
   final _msgCtrl = TextEditingController();
-  final _scroll  = ScrollController();
+  final _scroll = ScrollController();
+  StreamSubscription<QuerySnapshot>? _readReceiptSub;
   bool _isSending = false;
 
   User? get _me => FirebaseAuth.instance.currentUser;
@@ -736,17 +904,62 @@ class _DmChatViewState extends State<_DmChatView> {
     return ids.join('_');
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _startReadTracking();
+  }
+
+  void _startReadTracking() {
+    final uid = _me?.uid;
+    if (uid == null) return;
+    _markRead();
+    _readReceiptSub = FirebaseFirestore.instance
+        .collection('dm_chats')
+        .doc(_chatId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .snapshots()
+        .listen((snap) {
+          if (snap.docs.isEmpty) return;
+          final data = snap.docs.first.data();
+          if ((data['senderId'] as String? ?? '') != uid) {
+            _markRead();
+          }
+        });
+  }
+
+  Future<void> _markRead() async {
+    final uid = _me?.uid;
+    if (uid == null) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('contacts')
+          .doc(uid)
+          .collection('list')
+          .doc(widget.peer.uid)
+          .set({
+            'lastReadAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
   Future<String> _getMyName() async {
     final uid = _me?.uid;
     if (uid == null) return 'Anonyme';
-    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
     final email = _me?.email ?? '';
     final emailName = email.contains('@') ? email.split('@').first : email;
-    final fallback = _me?.displayName ?? (emailName.isNotEmpty ? emailName : 'Anonyme');
+    final fallback =
+        _me?.displayName ?? (emailName.isNotEmpty ? emailName : 'Anonyme');
     if (!doc.exists) return fallback;
     final d = doc.data()!;
     final first = d['firstName'] as String? ?? '';
-    final last  = d['lastName']  as String? ?? '';
+    final last = d['lastName'] as String? ?? '';
     return '$first $last'.trim().isEmpty ? fallback : '$first $last'.trim();
   }
 
@@ -755,31 +968,36 @@ class _DmChatViewState extends State<_DmChatView> {
     if (text.isEmpty || _isSending) return;
     setState(() => _isSending = true);
     try {
-      final name     = await _getMyName();
+      final name = await _getMyName();
       await FirebaseFirestore.instance
           .collection('dm_chats')
           .doc(_chatId)
           .collection('messages')
           .add({
-        'senderId':    _me!.uid,
-        'senderName':  name,
-        'senderEmail': _me?.email ?? '',
-        'text':        text,
-        'timestamp':   FieldValue.serverTimestamp(),
-      });
+            'senderId': _me!.uid,
+            'senderName': name,
+            'senderEmail': _me?.email ?? '',
+            'text': text,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
       _msgCtrl.clear();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scroll.hasClients) {
-          _scroll.animateTo(_scroll.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOut);
+          _scroll.animateTo(
+            _scroll.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+          );
         }
       });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'),
-                backgroundColor: const Color(0xFFE74C3C)));
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFE74C3C),
+          ),
+        );
       }
     }
     if (mounted) setState(() => _isSending = false);
@@ -787,6 +1005,7 @@ class _DmChatViewState extends State<_DmChatView> {
 
   @override
   void dispose() {
+    _readReceiptSub?.cancel();
     _msgCtrl.dispose();
     _scroll.dispose();
     super.dispose();
@@ -800,47 +1019,73 @@ class _DmChatViewState extends State<_DmChatView> {
         Container(
           color: _c.card,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(children: [
-            IconButton(
-              icon: Icon(Icons.arrow_back_rounded, color: _c.textPri),
-              onPressed: widget.onBack,
-            ),
-            StreamBuilder<Map<String, dynamic>>(
-              stream: PresenceService.instance.watchPresence(widget.peer.uid),
-              builder: (context, snap) {
-                final status = snap.data?['status'] as String? ?? 'offline';
-                final color = status == 'online' ? kTeal
-                    : status == 'dnd' ? kOrange : Colors.grey;
-                return Row(children: [
-                  Stack(children: [
-                    UserAvatar(uid: widget.peer.uid, fallbackName: widget.peer.name, radius: 18),
-                    Positioned(
-                      right: 0, bottom: 0,
-                      child: Icon(
-                        status == 'online' ? Icons.circle
-                            : status == 'dnd'
-                                ? Icons.remove_circle
-                                : Icons.circle_outlined,
-                        color: color, size: 12),
-                    ),
-                  ]),
-                  const SizedBox(width: 12),
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(widget.peer.name,
-                        style: TextStyle(
-                            color: _c.textPri,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15)),
-                    Text(
-                      status == 'online' ? 'Online'
-                          : status == 'dnd' ? 'Do Not Disturb' : 'Offline',
-                      style: TextStyle(color: color, fontSize: 11),
-                    ),
-                  ]),
-                ]);
-              },
-            ),
-          ]),
+          child: Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.arrow_back_rounded, color: _c.textPri),
+                onPressed: widget.onBack,
+              ),
+              StreamBuilder<Map<String, dynamic>>(
+                stream: PresenceService.instance.watchPresence(widget.peer.uid),
+                builder: (context, snap) {
+                  final status = snap.data?['status'] as String? ?? 'offline';
+                  final color = status == 'online'
+                      ? kTeal
+                      : status == 'dnd'
+                      ? kOrange
+                      : Colors.grey;
+                  return Row(
+                    children: [
+                      Stack(
+                        children: [
+                          UserAvatar(
+                            uid: widget.peer.uid,
+                            fallbackName: widget.peer.name,
+                            radius: 18,
+                          ),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Icon(
+                              status == 'online'
+                                  ? Icons.circle
+                                  : status == 'dnd'
+                                  ? Icons.remove_circle
+                                  : Icons.circle_outlined,
+                              color: color,
+                              size: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.peer.name,
+                            style: TextStyle(
+                              color: _c.textPri,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          Text(
+                            status == 'online'
+                                ? 'Online'
+                                : status == 'dnd'
+                                ? 'Do Not Disturb'
+                                : 'Offline',
+                            style: TextStyle(color: color, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
@@ -853,13 +1098,16 @@ class _DmChatViewState extends State<_DmChatView> {
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
-                    child: CircularProgressIndicator(color: kTeal));
+                  child: CircularProgressIndicator(color: kTeal),
+                );
               }
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return Center(
-                  child: Text('No messages yet.\nStart the conversation!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: _c.textSec, fontSize: 14)),
+                  child: Text(
+                    'No messages yet.\nStart the conversation!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: _c.textSec, fontSize: 14),
+                  ),
                 );
               }
               final msgs = snapshot.data!.docs
@@ -870,7 +1118,9 @@ class _DmChatViewState extends State<_DmChatView> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 itemCount: msgs.length,
                 itemBuilder: (_, i) => _MessageBubble(
-                    msg: msgs[i], isMine: msgs[i].senderId == _me?.uid),
+                  msg: msgs[i],
+                  isMine: msgs[i].senderId == _me?.uid,
+                ),
               );
             },
           ),
@@ -884,44 +1134,58 @@ class _DmChatViewState extends State<_DmChatView> {
     return Container(
       color: _c.card,
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-      child: Row(children: [
-        Expanded(
-          child: TextField(
-            controller: _msgCtrl,
-            minLines: 1,
-            maxLines: 4,
-            onSubmitted: (_) => _send(),
-            style: TextStyle(color: _c.textPri, fontSize: 14),
-            decoration: InputDecoration(
-              hintText: 'Message ${widget.peer.name}…',
-              hintStyle: TextStyle(color: _c.textSec, fontSize: 13),
-              filled: true,
-              fillColor: _c.inputFill,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _msgCtrl,
+              minLines: 1,
+              maxLines: 4,
+              onSubmitted: (_) => _send(),
+              style: TextStyle(color: _c.textPri, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Message ${widget.peer.name}…',
+                hintStyle: TextStyle(color: _c.textSec, fontSize: 13),
+                filled: true,
+                fillColor: _c.inputFill,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none),
+                  borderSide: BorderSide.none,
+                ),
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 10),
-        GestureDetector(
-          onTap: _isSending ? null : _send,
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration:
-                const BoxDecoration(color: kTeal, shape: BoxShape.circle),
-            child: _isSending
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.black87))
-                : const Icon(Icons.send_rounded,
-                    color: Colors.black87, size: 20),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: _isSending ? null : _send,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: kTeal,
+                shape: BoxShape.circle,
+              ),
+              child: _isSending
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.black87,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.send_rounded,
+                      color: Colors.black87,
+                      size: 20,
+                    ),
+            ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
@@ -939,7 +1203,8 @@ class _OnlineUsersTab extends StatelessWidget {
 
     if (myUid == null) {
       return Center(
-          child: Text('Non connecté', style: TextStyle(color: colors.textSec)));
+        child: Text('Non connecté', style: TextStyle(color: colors.textSec)),
+      );
     }
 
     return StreamBuilder<QuerySnapshot>(
@@ -950,8 +1215,7 @@ class _OnlineUsersTab extends StatelessWidget {
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const Center(
-              child: CircularProgressIndicator(color: kTeal));
+          return const Center(child: CircularProgressIndicator(color: kTeal));
         }
 
         final docs = snapshot.data!.docs;
@@ -962,12 +1226,16 @@ class _OnlineUsersTab extends StatelessWidget {
               padding: const EdgeInsets.only(top: 60),
               child: Column(
                 children: [
-                  Icon(Icons.people_outline_rounded,
-                      color: colors.textSec.withValues(alpha: 0.3),
-                      size: 48),
+                  Icon(
+                    Icons.people_outline_rounded,
+                    color: colors.textSec.withValues(alpha: 0.3),
+                    size: 48,
+                  ),
                   const SizedBox(height: 12),
-                  Text('Aucun contact ajouté',
-                      style: TextStyle(color: colors.textSec, fontSize: 14)),
+                  Text(
+                    'Aucun contact ajouté',
+                    style: TextStyle(color: colors.textSec, fontSize: 14),
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     'Utilisez l\'onglet "Messages Directs"\npour ajouter des contacts.',
@@ -984,15 +1252,17 @@ class _OnlineUsersTab extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           itemCount: docs.length,
           itemBuilder: (context, index) {
-            final doc  = docs[index];
+            final doc = docs[index];
             final data = doc.data() as Map<String, dynamic>;
-            final nameSnapshot  = (data['name']  as String? ?? '').trim();
+            final nameSnapshot = (data['name'] as String? ?? '').trim();
             final email = (data['email'] as String? ?? '').trim();
             final fallbackName = nameSnapshot.isNotEmpty
                 ? nameSnapshot
                 : email.contains('@')
-                    ? email.split('@').first
-                    : email.isNotEmpty ? email : doc.id;
+                ? email.split('@').first
+                : email.isNotEmpty
+                ? email
+                : doc.id;
 
             return StreamBuilder<DocumentSnapshot>(
               // Live-stream the user's profile so name updates instantly
@@ -1005,10 +1275,14 @@ class _OnlineUsersTab extends StatelessWidget {
                 if (userSnap.hasData && userSnap.data!.exists) {
                   final d = userSnap.data!.data() as Map<String, dynamic>;
                   final first = d['firstName'] as String? ?? '';
-                  final last  = d['lastName']  as String? ?? '';
-                  final dn    = d['displayName'] as String? ?? '';
-                  final full  = '$first $last'.trim();
-                  displayName = full.isNotEmpty ? full : dn.isNotEmpty ? dn : fallbackName;
+                  final last = d['lastName'] as String? ?? '';
+                  final dn = d['displayName'] as String? ?? '';
+                  final full = '$first $last'.trim();
+                  displayName = full.isNotEmpty
+                      ? full
+                      : dn.isNotEmpty
+                      ? dn
+                      : fallbackName;
                 }
 
                 return StreamBuilder<Map<String, dynamic>?>(
@@ -1017,23 +1291,25 @@ class _OnlineUsersTab extends StatelessWidget {
                     final status =
                         (presSnap.data?['status'] as String?) ?? 'offline';
                     final isOnline = status == 'online';
-                    final isDnd    = status == 'dnd';
+                    final isDnd = status == 'dnd';
 
                     final statusColor = isOnline
                         ? kTeal
                         : isDnd
-                            ? kOrange
-                            : Colors.grey;
+                        ? kOrange
+                        : Colors.grey;
                     final statusLabel = isOnline
                         ? 'En ligne'
                         : isDnd
-                            ? 'Ne pas déranger'
-                            : 'Hors ligne';
+                        ? 'Ne pas déranger'
+                        : 'Hors ligne';
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: colors.card,
                         borderRadius: BorderRadius.circular(12),
@@ -1048,7 +1324,11 @@ class _OnlineUsersTab extends StatelessWidget {
                           Stack(
                             alignment: Alignment.bottomRight,
                             children: [
-                              UserAvatar(uid: doc.id, fallbackName: displayName, radius: 22),
+                              UserAvatar(
+                                uid: doc.id,
+                                fallbackName: displayName,
+                                radius: 22,
+                              ),
                               Container(
                                 width: 12,
                                 height: 12,
@@ -1056,7 +1336,9 @@ class _OnlineUsersTab extends StatelessWidget {
                                   color: statusColor,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                      color: colors.bg, width: 1.5),
+                                    color: colors.bg,
+                                    width: 1.5,
+                                  ),
                                 ),
                               ),
                             ],
@@ -1066,25 +1348,32 @@ class _OnlineUsersTab extends StatelessWidget {
                             child: Text(
                               displayName,
                               style: TextStyle(
-                                  color: colors.textPri,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14),
+                                color: colors.textPri,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: statusColor.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                  color: statusColor.withValues(alpha: 0.4)),
+                                color: statusColor.withValues(alpha: 0.4),
+                              ),
                             ),
-                            child: Text(statusLabel,
-                                style: TextStyle(
-                                    color: statusColor,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600)),
+                            child: Text(
+                              statusLabel,
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -1098,7 +1387,6 @@ class _OnlineUsersTab extends StatelessWidget {
       },
     );
   }
-
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1122,14 +1410,21 @@ class _MessageBubbleState extends State<_MessageBubble> {
     final uid = widget.msg.senderId;
     if (_nameCache.containsKey(uid)) return _nameCache[uid]!;
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
       if (doc.exists) {
         final d = doc.data()!;
         final first = d['firstName'] as String? ?? '';
-        final last  = d['lastName']  as String? ?? '';
-        final dn    = d['displayName'] as String? ?? '';
-        final full  = '$first $last'.trim();
-        final name  = full.isNotEmpty ? full : dn.isNotEmpty ? dn : widget.msg.senderName;
+        final last = d['lastName'] as String? ?? '';
+        final dn = d['displayName'] as String? ?? '';
+        final full = '$first $last'.trim();
+        final name = full.isNotEmpty
+            ? full
+            : dn.isNotEmpty
+            ? dn
+            : widget.msg.senderName;
         _nameCache[uid] = name;
         return name;
       }
@@ -1148,21 +1443,24 @@ class _MessageBubbleState extends State<_MessageBubble> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
-        mainAxisAlignment:
-            isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMine
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMine) ...[
-            UserAvatar(uid: msg.senderId, fallbackName: msg.senderName, radius: 16),
+            UserAvatar(
+              uid: msg.senderId,
+              fallbackName: msg.senderName,
+              radius: 16,
+            ),
             const SizedBox(width: 8),
           ],
           Flexible(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: isMine
-                    ? kTeal.withValues(alpha: 0.85)
-                    : c.card,
+                color: isMine ? kTeal.withValues(alpha: 0.85) : c.card,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -1178,34 +1476,49 @@ class _MessageBubbleState extends State<_MessageBubble> {
                       future: _resolveName(),
                       builder: (context, snap) {
                         final liveName = snap.data ?? msg.senderName;
-                        return Row(children: [
-                          Text(liveName,
+                        return Row(
+                          children: [
+                            Text(
+                              liveName,
                               style: TextStyle(
-                                  color: kTeal,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold)),
-                          if (msg.senderEmail.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            Text(msg.senderEmail,
+                                color: kTeal,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (msg.senderEmail.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                msg.senderEmail,
                                 style: TextStyle(
-                                    color: c.textSec, fontSize: 10)),
+                                  color: c.textSec,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
                           ],
-                        ]);
+                        );
                       },
                     ),
                     const SizedBox(height: 3),
                   ],
-                  Text(msg.text,
-                      style: TextStyle(
-                          color: isMine ? Colors.black87 : c.textPri,
-                          fontSize: 14)),
+                  Text(
+                    msg.text,
+                    style: TextStyle(
+                      color: isMine ? Colors.black87 : c.textPri,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(time,
-                      style: TextStyle(
-                          color: isMine
-                              ? Colors.black45
-                              : c.textSec.withValues(alpha: 0.5),
-                          fontSize: 10)),
+                  Text(
+                    time,
+                    style: TextStyle(
+                      color: isMine
+                          ? Colors.black45
+                          : c.textSec.withValues(alpha: 0.5),
+                      fontSize: 10,
+                    ),
+                  ),
                 ],
               ),
             ),

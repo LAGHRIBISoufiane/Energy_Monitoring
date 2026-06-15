@@ -26,6 +26,27 @@ const UNITS    = ['KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
 const REGION   = 'us-central1';
 const TIMEZONE = 'Africa/Casablanca';
 
+function normalizeEnergyMWh(value, unitId) {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  const looksLikeRawKwh =
+    value < 10 || (unitId === 'KOFERT_Unit_1' && value < 1000);
+  return looksLikeRawKwh ? value * 1_000_000 : value;
+}
+
+function sumPositiveEnergyDeltas(readings) {
+  let total = 0;
+  let previous = null;
+  for (const current of readings) {
+    if (!Number.isFinite(current)) continue;
+    if (previous !== null) {
+      const delta = current - previous;
+      if (delta > 0 && delta < 1_000_000_000) total += delta;
+    }
+    previous = current;
+  }
+  return total;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Daily report — fires every day at 06:00, sends only if frequency='daily'
 // ─────────────────────────────────────────────────────────────────────────────
@@ -215,11 +236,20 @@ async function buildUnitReport(db, unitId, cutoff, now, tariffRate) {
 
   if (snap.empty) return null;
 
-  const docs = snap.docs.map((d) => d.data());
+  const docs = snap.docs
+    .map((d) => d.data())
+    .sort((a, b) => {
+      const at = a.timestamp && typeof a.timestamp.toMillis === 'function'
+        ? a.timestamp.toMillis()
+        : 0;
+      const bt = b.timestamp && typeof b.timestamp.toMillis === 'function'
+        ? b.timestamp.toMillis()
+        : 0;
+      return at - bt;
+    });
   const n    = docs.length;
 
   const avg  = (f) => docs.reduce((s, d) => s + (d[f] || 0), 0) / n;
-  const sum  = (f) => docs.reduce((s, d) => s + (d[f] || 0), 0);
   const maxV = (f) => docs.reduce((m, d) => Math.max(m, d[f] || 0), 0);
 
   const avgVoltage     = avg('voltage');
@@ -227,7 +257,9 @@ async function buildUnitReport(db, unitId, cutoff, now, tariffRate) {
   const avgPower       = avg('power');
   const maxPower       = maxV('power');
   const avgPf          = avg('powerFactor');
-  const totalEnergyMWh = sum('energy');
+  const totalEnergyMWh = sumPositiveEnergyDeltas(
+    docs.map((d) => normalizeEnergyMWh(d.energy || 0, unitId))
+  );
   const estimatedCost  = (totalEnergyMWh / 1_000_000) * tariffRate;
 
   const fmtEnergy = (v) =>

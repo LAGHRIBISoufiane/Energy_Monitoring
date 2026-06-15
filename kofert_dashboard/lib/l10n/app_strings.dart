@@ -560,7 +560,7 @@ class AppStrings {
       'last_readings': 'Latest Readings',
       'no_data_range': 'No data for this period',
       'ai_predictions': 'AI Predictions',
-      'ai_model_subtitle': 'Linear regression',
+      'ai_model_subtitle': 'Meter delta + time trend',
       'confidence': 'Confidence',
       'pf_stable': 'PF stable',
       'pf_alert_drop': 'PF Alert — predicted drop',

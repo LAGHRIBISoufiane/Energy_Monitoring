@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -35,9 +35,9 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
   // ── EmailJS configuration ────────────────────────────────────────────
   // Replace these with your actual EmailJS credentials.
   // Sign up at https://www.emailjs.com and create a service + template.
-  static const _emailjsServiceId  = 'service_1tovyp1';
+  static const _emailjsServiceId = 'service_1tovyp1';
   static const _emailjsTemplateId = 'template_9cy6uou';
-  static const _emailjsPublicKey  = 'mD7lZMFFUPuDZlNRf';
+  static const _emailjsPublicKey = 'mD7lZMFFUPuDZlNRf';
 
   bool _isSendingEmail = false;
   List<EnergyData> _historicalData = [];
@@ -50,11 +50,11 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
   DateTime _startDate = DateTime(2020, 1, 1);
   DateTime _endDate = DateTime.now();
   bool _startDateLocked = false; // true when user explicitly picks a start date
-  bool _endDateLocked = false;   // true when user explicitly picks an end date
+  bool _endDateLocked = false; // true when user explicitly picks an end date
   PredictionResult? _predictions;
   double _tariffRate = 1.15;
-  String _energyUnit  = 'kWh';
-  String _powerUnit   = 'W';
+  String _energyUnit = 'kWh';
+  String _powerUnit = 'W';
   String _voltageUnit = 'V';
   String _currentUnit = 'A';
   String _selectedUnit = 'KOFERT_Unit_1';
@@ -70,8 +70,17 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
   final Set<String> _seenKeys = {};
 
   static const _allUnitsKey = 'ALL_UNITS';
-  static const _allUnitsList = ['KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
-  static const _units = ['ALL_UNITS', 'KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
+  static const _allUnitsList = [
+    'KOFERT_Unit_1',
+    'KOFERT_Unit_2',
+    'KOFERT_Unit_3',
+  ];
+  static const _units = [
+    'ALL_UNITS',
+    'KOFERT_Unit_1',
+    'KOFERT_Unit_2',
+    'KOFERT_Unit_3',
+  ];
   static final Map<String, Color> _unitColors = {
     'KOFERT_Unit_1': kTeal,
     'KOFERT_Unit_2': AppTheme.secondaryOrange,
@@ -80,11 +89,16 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
 
   static String _labelFor(String unit) {
     switch (unit) {
-      case 'ALL_UNITS': return AppStrings.t('all_units');
-      case 'KOFERT_Unit_1': return AppStrings.t('device_lamp');
-      case 'KOFERT_Unit_2': return AppStrings.t('device_fan_5v');
-      case 'KOFERT_Unit_3': return AppStrings.t('device_pump_5v');
-      default: return unit;
+      case 'ALL_UNITS':
+        return AppStrings.t('all_units');
+      case 'KOFERT_Unit_1':
+        return AppStrings.t('device_lamp');
+      case 'KOFERT_Unit_2':
+        return AppStrings.t('device_fan_5v');
+      case 'KOFERT_Unit_3':
+        return AppStrings.t('device_pump_5v');
+      default:
+        return unit;
     }
   }
 
@@ -109,15 +123,15 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
     for (final d in _historicalData) {
       _seenKeys.add(d.timestamp.toIso8601String());
     }
-    final ref = FirebaseDatabase.instance
-        .ref('$_selectedUnit/historical_data');
+    final ref = FirebaseDatabase.instance.ref('$_selectedUnit/historical_data');
     _rtSubscription = ref.onChildAdded.listen((event) {
       final snap = event.snapshot;
       if (snap.value == null) return;
       try {
         final data = EnergyData.fromJson(
-            Map<String, dynamic>.from(snap.value as Map),
-            _selectedUnit);
+          Map<String, dynamic>.from(snap.value as Map),
+          _selectedUnit,
+        );
         final key = data.timestamp.toIso8601String();
         if (_seenKeys.contains(key)) return; // already loaded
         _seenKeys.add(key);
@@ -139,11 +153,11 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
     if (!mounted) return;
     setState(() {
       _selectedUnit = prefs.getString('selectedUnit') ?? 'KOFERT_Unit_1';
-      _tariffRate   = prefs.getDouble('tariffRate')    ?? 1.15;
-      _energyUnit   = prefs.getString('unitEnergy')    ?? 'kWh';
-      _powerUnit    = prefs.getString('unitPower')     ?? 'W';
-      _voltageUnit  = prefs.getString('unitVoltage')   ?? 'V';
-      _currentUnit  = prefs.getString('unitCurrent')   ?? 'A';
+      _tariffRate = prefs.getDouble('tariffRate') ?? 1.15;
+      _energyUnit = prefs.getString('unitEnergy') ?? 'kWh';
+      _powerUnit = prefs.getString('unitPower') ?? 'W';
+      _voltageUnit = prefs.getString('unitVoltage') ?? 'V';
+      _currentUnit = prefs.getString('unitCurrent') ?? 'A';
     });
     await _loadHistoricalData();
     _startRealTimeListener();
@@ -291,9 +305,9 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur de chargement: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur de chargement: $e')));
     }
   }
 
@@ -311,31 +325,11 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
       current: n(m['current']),
       powerFactor: n(m['powerFactor']),
       power: n(m['power']),
-      energy: n(m['energy']), // already in mWh
+      energy: normalizeStoredEnergyMwh(n(m['energy']), unitId),
       frequency: n(m['frequency'], 50.0),
       windSpeed: n(m['fanSpeed']),
       waterLevel: (m['waterLevel'] as num?)?.toInt() ?? 0,
     );
-  }
-
-  /// Merge [extra] Firestore records into [base] Realtime DB records.
-  /// Deduplicates by rounded-minute timestamp to avoid double-counting.
-  List<EnergyData> _mergeWithFirestore(
-      List<EnergyData> base, List<EnergyData> extra) {
-    final seen = <String>{};
-    final result = <EnergyData>[];
-    for (final d in base) {
-      final key =
-          '${d.unitId}|${d.timestamp.year}-${d.timestamp.month}-${d.timestamp.day}-${d.timestamp.hour}-${d.timestamp.minute}';
-      if (seen.add(key)) result.add(d);
-    }
-    for (final d in extra) {
-      final key =
-          '${d.unitId}|${d.timestamp.year}-${d.timestamp.month}-${d.timestamp.day}-${d.timestamp.hour}-${d.timestamp.minute}';
-      if (seen.add(key)) result.add(d);
-    }
-    result.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-    return result;
   }
 
   void _applyDateFilter() {
@@ -343,25 +337,37 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
       _allUnitsFiltered = {};
       for (final entry in _allUnitsData.entries) {
         _allUnitsFiltered[entry.key] = entry.value
-            .where((d) => !d.timestamp.isBefore(_startDate) && !d.timestamp.isAfter(_endDate))
+            .where(
+              (d) =>
+                  !d.timestamp.isBefore(_startDate) &&
+                  !d.timestamp.isAfter(_endDate),
+            )
             .toList();
       }
       _filteredData = [for (final l in _allUnitsFiltered.values) ...l]
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
     } else {
       _filteredData = _historicalData
-          .where((data) =>
-              !data.timestamp.isBefore(_startDate) &&
-              !data.timestamp.isAfter(_endDate))
+          .where(
+            (data) =>
+                !data.timestamp.isBefore(_startDate) &&
+                !data.timestamp.isAfter(_endDate),
+          )
           .toList();
     }
   }
 
   void _runPredictions() {
-    if (_historicalData.isEmpty) return;
+    final data = _filteredData.isNotEmpty ? _filteredData : _historicalData;
+    if (data.isEmpty) {
+      if (mounted) setState(() => _predictions = null);
+      return;
+    }
     final predictor = EnergyPredictor(
-        tariffRate: _tariffRate, pfThreshold: 0.8);
-    final result = predictor.predict(_historicalData);
+      tariffRate: _tariffRate,
+      pfThreshold: 0.8,
+    );
+    final result = predictor.predict(data);
     if (mounted) setState(() => _predictions = result);
   }
 
@@ -375,12 +381,16 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            title: const Row(children: [
-              Icon(Icons.email_outlined, color: kTeal),
-              SizedBox(width: 10),
-              Text('Envoyer par email'),
-            ]),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.email_outlined, color: kTeal),
+                SizedBox(width: 10),
+                Text('Envoyer par email'),
+              ],
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,14 +419,20 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Mon email',
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600)),
-                              Text(myEmail,
-                                  style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 12)),
+                              const Text(
+                                'Mon email',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                myEmail,
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -436,10 +452,13 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
                           activeColor: kTeal,
                           onChanged: (v) => setLocal(() => sendToSelf = v!),
                         ),
-                        const Text('Autre adresse email',
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600)),
+                        const Text(
+                          'Autre adresse email',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -451,12 +470,14 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
                       autofocus: true,
                       decoration: InputDecoration(
                         labelText: 'Adresse email du destinataire',
-                        prefixIcon:
-                            const Icon(Icons.alternate_email, size: 18),
+                        prefixIcon: const Icon(Icons.alternate_email, size: 18),
                         border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
                     ),
                   ],
@@ -466,12 +487,14 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       labelText: 'Adresse email du destinataire',
-                      prefixIcon:
-                          const Icon(Icons.alternate_email, size: 18),
+                      prefixIcon: const Icon(Icons.alternate_email, size: 18),
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                     ),
                   ),
                 ],
@@ -496,7 +519,8 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
                         if (email.isEmpty || !email.contains('@')) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                                content: Text('Adresse email invalide')),
+                              content: Text('Adresse email invalide'),
+                            ),
                           );
                           return;
                         }
@@ -516,9 +540,9 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
 
   Future<void> _sendByEmail(String toEmail) async {
     if (_filteredData.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucune donnée à envoyer')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Aucune donnée à envoyer')));
       return;
     }
 
@@ -528,13 +552,19 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
     _exportToExcel();
 
     try {
-      final emailPUnit  = _useMiliUnits ? 'mW' : 'W';
-      final emailCUnit  = _useMiliUnits ? 'mA' : 'A';
+      final emailPUnit = _useMiliUnits ? 'mW' : 'W';
+      final emailCUnit = _useMiliUnits ? 'mA' : 'A';
       final emailScaleP = _useMiliUnits ? 1000.0 : 1.0;
       final emailScaleC = _useMiliUnits ? 1000.0 : 1.0;
 
-      final avgPower    = _filteredData.map((e) => e.power * emailScaleP).reduce((a, b) => a + b) / _filteredData.length;
-      final avgPf       = _filteredData.map((e) => e.powerFactor).reduce((a, b) => a + b) / _filteredData.length;
+      final avgPower =
+          _filteredData
+              .map((e) => e.power * emailScaleP)
+              .reduce((a, b) => a + b) /
+          _filteredData.length;
+      final avgPf =
+          _filteredData.map((e) => e.powerFactor).reduce((a, b) => a + b) /
+          _filteredData.length;
       // Energy is a cumulative counter (odometer). Correct total = sum of
       // (max − min) per unit, NOT the sum of all readings.
       final totalEnergy = () {
@@ -545,35 +575,47 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
         double total = 0.0;
         for (final vals in byUnit.values) {
           if (vals.isEmpty) continue;
-          final delta = vals.reduce((a, b) => a > b ? a : b) -
-                        vals.reduce((a, b) => a < b ? a : b);
+          final delta =
+              vals.reduce((a, b) => a > b ? a : b) -
+              vals.reduce((a, b) => a < b ? a : b);
           if (delta > 0) total += delta;
         }
         return total;
       }();
-      final avgVoltage  = _filteredData.map((e) => e.voltage).reduce((a, b) => a + b) / _filteredData.length;
-      final avgCurrent  = _filteredData.map((e) => e.current * emailScaleC).reduce((a, b) => a + b) / _filteredData.length;
+      final avgVoltage =
+          _filteredData.map((e) => e.voltage).reduce((a, b) => a + b) /
+          _filteredData.length;
+      final avgCurrent =
+          _filteredData
+              .map((e) => e.current * emailScaleC)
+              .reduce((a, b) => a + b) /
+          _filteredData.length;
 
-      final fmt     = DateFormat('dd/MM/yyyy');
+      final fmt = DateFormat('dd/MM/yyyy');
       final timeFmt = DateFormat('dd/MM/yyyy HH:mm');
-      final dtsFmt  = DateFormat('dd/MM HH:mm');
+      final dtsFmt = DateFormat('dd/MM HH:mm');
       final unitLabel = '$_selectedUnit — ${_labelFor(_selectedUnit)}';
-      final subject   = 'Rapport Énergétique — $_selectedUnit '
+      final subject =
+          'Rapport Énergétique — $_selectedUnit '
           '(${fmt.format(_startDate)} → ${fmt.format(_endDate)})';
 
       // ── Facture (cost breakdown) ──────────────────────────────────────────
-      final periodHours = _endDate.difference(_startDate).inHours.toDouble().clamp(1.0, double.infinity);
-      final periodDays  = periodHours / 24.0;
+      final periodHours = _endDate
+          .difference(_startDate)
+          .inHours
+          .toDouble()
+          .clamp(1.0, double.infinity);
+      final periodDays = periodHours / 24.0;
       // totalEnergy in mWh; tariff in MAD/kWh; 1 kWh = 1 000 000 mWh
-      final periodCost  = totalEnergy * _tariffRate / 1000000.0;
-      final dailyCost   = periodCost / periodDays;
+      final periodCost = totalEnergy * _tariffRate / 1000000.0;
+      final dailyCost = periodCost / periodDays;
 
       // ── Predictions ───────────────────────────────────────────────────────
-      final pred          = _predictions;
-      final wkEnergyMwh   = (pred?.nextDayEnergyMwh ?? 0) * 7;
-      final wkCostMad     = (pred?.nextDayCost ?? 0) * 7;
-      final moEnergyMwh   = (pred?.nextDayEnergyMwh ?? 0) * 30;
-      final moCostMad     = (pred?.nextDayCost ?? 0) * 30;
+      final pred = _predictions;
+      final wkEnergyMwh = (pred?.nextDayEnergyMwh ?? 0) * 7;
+      final wkCostMad = (pred?.nextDayCost ?? 0) * 7;
+      final moEnergyMwh = (pred?.nextDayEnergyMwh ?? 0) * 30;
+      final moCostMad = (pred?.nextDayCost ?? 0) * 30;
 
       // ── Sample rows (first 10 + last 10 if > 20 rows) ─────────────────────
       final sample = <EnergyData>[];
@@ -584,28 +626,35 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
         sample.addAll(_filteredData.skip(_filteredData.length - 10));
       }
       final isAllUnits = _selectedUnit == _allUnitsKey;
-      final sampleHtml = sample.map((e) {
-        // Per-row scaling: in all-units mode use the unit's own scale, else use emailScaleP/C
-        final rowIsMili = e.unitId == 'KOFERT_Unit_2' || e.unitId == 'KOFERT_Unit_3';
-        final rowScaleP = isAllUnits ? (rowIsMili ? 1000.0 : 1.0) : emailScaleP;
-        final rowScaleC = isAllUnits ? (rowIsMili ? 1000.0 : 1.0) : emailScaleC;
-        final rowPUnit  = isAllUnits ? (rowIsMili ? 'mW' : 'W')   : emailPUnit;
-        final rowCUnit  = isAllUnits ? (rowIsMili ? 'mA' : 'A')   : emailCUnit;
-        final pv = (e.power   * rowScaleP).toStringAsFixed(2);
-        final cv = (e.current * rowScaleC).toStringAsFixed(3);
-        final unitCell = isAllUnits
-            ? '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px;color:#1a3a5c;font-weight:600">${_labelFor(e.unitId)}</td>'
-            : '';
-        return '<tr>'
-            '$unitCell'
-            '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px">${dtsFmt.format(e.timestamp)}</td>'
-            '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px">$pv $rowPUnit</td>'
-            '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px">${e.voltage.toStringAsFixed(2)} V</td>'
-            '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px">$cv $rowCUnit</td>'
-            '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px">${fmtEnergy(e.energy)}</td>'
-            '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px">${e.powerFactor.toStringAsFixed(3)}</td>'
-            '</tr>';
-      }).join('\n');
+      final sampleHtml = sample
+          .map((e) {
+            // Per-row scaling: in all-units mode use the unit's own scale, else use emailScaleP/C
+            final rowIsMili =
+                e.unitId == 'KOFERT_Unit_2' || e.unitId == 'KOFERT_Unit_3';
+            final rowScaleP = isAllUnits
+                ? (rowIsMili ? 1000.0 : 1.0)
+                : emailScaleP;
+            final rowScaleC = isAllUnits
+                ? (rowIsMili ? 1000.0 : 1.0)
+                : emailScaleC;
+            final rowPUnit = isAllUnits ? (rowIsMili ? 'mW' : 'W') : emailPUnit;
+            final rowCUnit = isAllUnits ? (rowIsMili ? 'mA' : 'A') : emailCUnit;
+            final pv = (e.power * rowScaleP).toStringAsFixed(2);
+            final cv = (e.current * rowScaleC).toStringAsFixed(3);
+            final unitCell = isAllUnits
+                ? '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px;color:#1a3a5c;font-weight:600">${_labelFor(e.unitId)}</td>'
+                : '';
+            return '<tr>'
+                '$unitCell'
+                '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px">${dtsFmt.format(e.timestamp)}</td>'
+                '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px">$pv $rowPUnit</td>'
+                '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px">${e.voltage.toStringAsFixed(2)} V</td>'
+                '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px">$cv $rowCUnit</td>'
+                '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px">${fmtEnergy(e.energy)}</td>'
+                '<td style="padding:5px 9px;border:1px solid #e0e0e0;font-size:11px">${e.powerFactor.toStringAsFixed(3)}</td>'
+                '</tr>';
+          })
+          .join('\n');
 
       // ── Predictions HTML ──────────────────────────────────────────────────
       final predHtml = pred == null
@@ -638,10 +687,12 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
     <td style="padding:8px 12px;border:1px solid #e0e0e0;color:#27ae60;font-weight:600">${pred.monthEndCost.toStringAsFixed(4)} MAD</td>
   </tr>
 </table>
-<p style="color:#888;font-size:11px;margin-top:6px">Modèle : régression linéaire sur données historiques — confiance ${(pred.costConfidence * 100).toStringAsFixed(0)}%</p>''';
+<p style="color:#888;font-size:11px;margin-top:6px">Modèle : compteur énergie + tendance temporelle — confiance ${(pred.costConfidence * 100).toStringAsFixed(0)}%</p>''';
 
       // ── Build the full HTML message ────────────────────────────────────────
-      final invoicePredHtml = pred == null ? '' : '''
+      final invoicePredHtml = pred == null
+          ? ''
+          : '''
   <tr>
     <td style="padding:10px 14px;border:1px solid #e0e0e0;color:#888">Coût cumulé ce mois</td>
     <td style="padding:10px 14px;border:1px solid #e0e0e0;color:#e67e22">${pred.monthToDateCost.toStringAsFixed(4)} MAD</td>
@@ -655,7 +706,8 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
           ? 'premières &amp; dernières 10 mesures sur ${_filteredData.length}'
           : '${_filteredData.length} mesures';
 
-      final message = '''
+      final message =
+          '''
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:660px">
   <!-- Header -->
   <table cellpadding="0" cellspacing="0" width="100%" style="background:#0D47A1;border-radius:8px 8px 0 0">
@@ -731,7 +783,7 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
   $invoicePredHtml
 </table>
 
-<h3 style="color:#1a3a5c;margin:20px 0 12px">&#129302; Prévision Energitique — Régression Linéaire</h3>
+<h3 style="color:#1a3a5c;margin:20px 0 12px">&#129302; Prévision Energitique — Compteur + tendance</h3>
 $predHtml
 
 <h3 style="color:#1a3a5c;margin:20px 0 12px">&#128203; Échantillon des données ($sampleLabel)</h3>
@@ -763,17 +815,20 @@ $predHtml
 
       final response = await http_client.post(
         Uri.parse('https://api.emailjs.com/api/v1.0/email/send'),
-        headers: {'Content-Type': 'application/json', 'origin': html.window.location.href},
+        headers: {
+          'Content-Type': 'application/json',
+          'origin': html.window.location.href,
+        },
         body: jsonEncode({
-          'service_id':  _emailjsServiceId,
+          'service_id': _emailjsServiceId,
           'template_id': _emailjsTemplateId,
-          'user_id':     _emailjsPublicKey,
+          'user_id': _emailjsPublicKey,
           'template_params': {
-            'name':     unitLabel,
-            'time':     timeFmt.format(DateTime.now()),
+            'name': unitLabel,
+            'time': timeFmt.format(DateTime.now()),
             'to_email': toEmail,
-            'subject':  subject,
-            'message':  message,
+            'subject': subject,
+            'message': message,
           },
         }),
       );
@@ -782,21 +837,27 @@ $predHtml
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Email envoyé à $toEmail ✓  —  Excel téléchargé dans votre navigateur'),
+            content: Text(
+              'Email envoyé à $toEmail ✓  —  Excel téléchargé dans votre navigateur',
+            ),
             backgroundColor: const Color(0xFF2ECC71),
             behavior: SnackBarBehavior.floating,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Échec EmailJS (${response.statusCode}): ${response.body}')),
+          SnackBar(
+            content: Text(
+              'Échec EmailJS (${response.statusCode}): ${response.body}',
+            ),
+          ),
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur envoi email: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur envoi email: $e')));
     } finally {
       if (mounted) setState(() => _isSendingEmail = false);
     }
@@ -804,9 +865,9 @@ $predHtml
 
   void _exportToExcel() {
     if (_filteredData.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucune donnée à exporter')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Aucune donnée à exporter')));
       return;
     }
     try {
@@ -818,16 +879,23 @@ $predHtml
       final pUnit = _useMiliUnits ? 'mW' : 'W';
       final cUnit = _useMiliUnits ? 'mA' : 'A';
       final headers = [
-        'Timestamp', 'Puissance ($pUnit)', 'Tension (V)', 'Courant ($cUnit)',
-        'Energie (mWh)', 'Facteur de Puissance', 'Fréquence (Hz)',
-        'Puissance Apparente (VA)', 'Puissance Réactive (VAR)',
+        'Timestamp',
+        'Puissance ($pUnit)',
+        'Tension (V)',
+        'Courant ($cUnit)',
+        'Energie (mWh)',
+        'Facteur de Puissance',
+        'Fréquence (Hz)',
+        'Puissance Apparente (VA)',
+        'Puissance Réactive (VAR)',
       ];
       sheet.appendRow(headers.map((h) => xl.TextCellValue(h)).toList());
 
       // Style header
       for (int c = 0; c < headers.length; c++) {
         final cell = sheet.cell(
-            xl.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 0));
+          xl.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 0),
+        );
         cell.cellStyle = xl.CellStyle(
           bold: true,
           backgroundColorHex: xl.ExcelColor.fromHexString('#1A2E4A'),
@@ -841,7 +909,8 @@ $predHtml
       for (final d in _filteredData) {
         sheet.appendRow([
           xl.TextCellValue(
-              DateFormat('yyyy-MM-dd HH:mm:ss').format(d.timestamp)),
+            DateFormat('yyyy-MM-dd HH:mm:ss').format(d.timestamp),
+          ),
           xl.DoubleCellValue(d.power * scaleP),
           xl.DoubleCellValue(d.voltage),
           xl.DoubleCellValue(d.current * scaleC),
@@ -856,20 +925,44 @@ $predHtml
       // Predictions sheet
       if (_predictions != null) {
         final pSheet = excel['Prévision Energitique'];
-        pSheet.appendRow([xl.TextCellValue('Indicateur'), xl.TextCellValue('Valeur')]);
-        pSheet.appendRow([xl.TextCellValue('Coût prochain jour (MAD)'), xl.DoubleCellValue(_predictions!.nextDayCost)]);
-        pSheet.appendRow([xl.TextCellValue('Energie prochain jour (mWh)'), xl.DoubleCellValue(_predictions!.nextDayEnergyMwh)]);
-        pSheet.appendRow([xl.TextCellValue('Coût fin du mois (MAD)'), xl.DoubleCellValue(_predictions!.monthEndCost)]);
-        pSheet.appendRow([xl.TextCellValue('Coût cumulé ce mois (MAD)'), xl.DoubleCellValue(_predictions!.monthToDateCost)]);
-        pSheet.appendRow([xl.TextCellValue('FP prédit (10 min)'), xl.DoubleCellValue(_predictions!.predictedPf10min)]);
-        pSheet.appendRow([xl.TextCellValue('Tendance FP'), xl.TextCellValue(_predictions!.pfTrend)]);
-        pSheet.appendRow([xl.TextCellValue('Alerte FP'), xl.TextCellValue(_predictions!.pfWillDropBelow ? 'OUI' : 'NON')]);
+        pSheet.appendRow([
+          xl.TextCellValue('Indicateur'),
+          xl.TextCellValue('Valeur'),
+        ]);
+        pSheet.appendRow([
+          xl.TextCellValue('Coût prochain jour (MAD)'),
+          xl.DoubleCellValue(_predictions!.nextDayCost),
+        ]);
+        pSheet.appendRow([
+          xl.TextCellValue('Energie prochain jour (mWh)'),
+          xl.DoubleCellValue(_predictions!.nextDayEnergyMwh),
+        ]);
+        pSheet.appendRow([
+          xl.TextCellValue('Coût fin du mois (MAD)'),
+          xl.DoubleCellValue(_predictions!.monthEndCost),
+        ]);
+        pSheet.appendRow([
+          xl.TextCellValue('Coût cumulé ce mois (MAD)'),
+          xl.DoubleCellValue(_predictions!.monthToDateCost),
+        ]);
+        pSheet.appendRow([
+          xl.TextCellValue('FP prédit (10 min)'),
+          xl.DoubleCellValue(_predictions!.predictedPf10min),
+        ]);
+        pSheet.appendRow([
+          xl.TextCellValue('Tendance FP'),
+          xl.TextCellValue(_predictions!.pfTrend),
+        ]);
+        pSheet.appendRow([
+          xl.TextCellValue('Alerte FP'),
+          xl.TextCellValue(_predictions!.pfWillDropBelow ? 'OUI' : 'NON'),
+        ]);
       }
 
       final bytes = excel.save()!;
       final ts = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final blob = html.Blob([
-        Uint8List.fromList(bytes)
+        Uint8List.fromList(bytes),
       ], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       final url = html.Url.createObjectUrlFromBlob(blob);
       html.AnchorElement(href: url)
@@ -885,17 +978,17 @@ $predHtml
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur export Excel: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur export Excel: $e')));
     }
   }
 
   void _exportToCSV() {
     if (_filteredData.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucune donnée à exporter')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Aucune donnée à exporter')));
       return;
     }
 
@@ -903,12 +996,16 @@ $predHtml
     final csvCUnit = _useMiliUnits ? 'mA' : 'A';
     final scaleP2 = _useMiliUnits ? 1000.0 : 1.0;
     final scaleC2 = _useMiliUnits ? 1000.0 : 1.0;
-    final headers = 'Timestamp,Power ($csvPUnit),Voltage (V),Current ($csvCUnit),Energy (mWh),Power Factor,Frequency (Hz)\n';
-    final rows = _filteredData.map((data) =>
-        '${DateFormat('yyyy-MM-dd HH:mm:ss').format(data.timestamp)},'
-        '${data.power * scaleP2},${data.voltage},${data.current * scaleC2},${data.energy},'
-        '${data.powerFactor},${data.frequency}'
-    ).join('\n');
+    final headers =
+        'Timestamp,Power ($csvPUnit),Voltage (V),Current ($csvCUnit),Energy (mWh),Power Factor,Frequency (Hz)\n';
+    final rows = _filteredData
+        .map(
+          (data) =>
+              '${DateFormat('yyyy-MM-dd HH:mm:ss').format(data.timestamp)},'
+              '${data.power * scaleP2},${data.voltage},${data.current * scaleC2},${data.energy},'
+              '${data.powerFactor},${data.frequency}',
+        )
+        .join('\n');
 
     final csv = headers + rows;
     final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
@@ -919,21 +1016,25 @@ $predHtml
 
   void _exportToJSON() {
     if (_filteredData.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucune donnée à exporter')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Aucune donnée à exporter')));
       return;
     }
 
-    final data = _filteredData.map((e) => {
-      'timestamp': DateFormat('yyyy-MM-dd HH:mm:ss').format(e.timestamp),
-      'power_w': e.power,
-      'voltage_v': e.voltage,
-      'current_a': e.current,
-      'energy_mwh': e.energy,
-      'power_factor': e.powerFactor,
-      'frequency_hz': e.frequency,
-    }).toList();
+    final data = _filteredData
+        .map(
+          (e) => {
+            'timestamp': DateFormat('yyyy-MM-dd HH:mm:ss').format(e.timestamp),
+            'power_w': e.power,
+            'voltage_v': e.voltage,
+            'current_a': e.current,
+            'energy_mwh': e.energy,
+            'power_factor': e.powerFactor,
+            'frequency_hz': e.frequency,
+          },
+        )
+        .toList();
 
     final json = jsonEncode({
       'unit': _selectedUnit,
@@ -956,7 +1057,9 @@ $predHtml
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           title: Row(
             children: [
               Icon(Icons.download, color: AppTheme.primaryNavy),
@@ -998,13 +1101,19 @@ $predHtml
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Entrées', style: Theme.of(context).textTheme.labelSmall),
+                  Text(
+                    'Entrées',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
                   Container(
                     decoration: BoxDecoration(
                       color: AppTheme.secondaryOrange.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     child: Text(
                       '${_filteredData.length}',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -1018,9 +1127,9 @@ $predHtml
               const SizedBox(height: 16),
               Text(
                 'Aperçu du contenu',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               Container(
@@ -1034,7 +1143,10 @@ $predHtml
                   width: double.maxFinite,
                   child: SingleChildScrollView(
                     child: SelectableText(
-                      content.substring(0, (content.length > 500 ? 500 : content.length)),
+                      content.substring(
+                        0,
+                        (content.length > 500 ? 500 : content.length),
+                      ),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         fontSize: 10,
                         fontFamily: 'monospace',
@@ -1078,113 +1190,174 @@ $predHtml
       body: Column(
         children: [
           // ── Page header ────────────────────────────────────────────────
-          LayoutBuilder(builder: (context, bc) {
-            final isMobile = bc.maxWidth < 700;
-            // Shared action buttons
-            final actions = Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _isSendingEmail
-                    ? const SizedBox(
-                        width: 20, height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: kTeal),
-                      )
-                    : IconButton(
-                        icon: Icon(Icons.email_outlined, color: _c.textPri),
-                        tooltip: 'Envoyer par email',
-                        padding: const EdgeInsets.all(6),
-                        constraints: const BoxConstraints(),
-                        onPressed: _filteredData.isEmpty ? null : _showSendEmailDialog,
+          LayoutBuilder(
+            builder: (context, bc) {
+              final isMobile = bc.maxWidth < 700;
+              // Shared action buttons
+              final actions = Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _isSendingEmail
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: kTeal,
+                          ),
+                        )
+                      : IconButton(
+                          icon: Icon(Icons.email_outlined, color: _c.textPri),
+                          tooltip: 'Envoyer par email',
+                          padding: const EdgeInsets.all(6),
+                          constraints: const BoxConstraints(),
+                          onPressed: _filteredData.isEmpty
+                              ? null
+                              : _showSendEmailDialog,
+                        ),
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'csv') _exportToCSV();
+                      if (value == 'json') _exportToJSON();
+                      if (value == 'excel') _exportToExcel();
+                    },
+                    itemBuilder: (BuildContext context) => [
+                      PopupMenuItem(
+                        value: 'excel',
+                        child: Row(
+                          children: [
+                            Icon(Icons.table_view_rounded, color: kTeal),
+                            const SizedBox(width: 10),
+                            const Text('Exporter Excel (.xlsx)'),
+                          ],
+                        ),
                       ),
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'csv') _exportToCSV();
-                    if (value == 'json') _exportToJSON();
-                    if (value == 'excel') _exportToExcel();
-                  },
-                  itemBuilder: (BuildContext context) => [
-                    PopupMenuItem(value: 'excel', child: Row(children: [Icon(Icons.table_view_rounded, color: kTeal), const SizedBox(width: 10), const Text('Exporter Excel (.xlsx)')])),
-                    PopupMenuItem(value: 'csv', child: Row(children: [Icon(Icons.table_chart, color: kTeal), const SizedBox(width: 10), const Text('Exporter CSV')])),
-                    PopupMenuItem(value: 'json', child: Row(children: [Icon(Icons.code, color: kTeal), const SizedBox(width: 10), const Text('Exporter JSON')])),
-                  ],
-                  icon: Icon(Icons.download, color: _c.textPri),
-                ),
-              ],
-            );
-            // Shared unit dropdown
-            final unitDropdown = DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedUnit,
-                dropdownColor: _c.card,
-                isExpanded: isMobile,
-                style: TextStyle(color: _c.textPri, fontSize: 13),
-                icon: Icon(Icons.expand_more, color: _c.textSec, size: 18),
-                items: _units.map((u) => DropdownMenuItem(
-                  value: u,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_deviceIcon[u]!, color: kTeal, size: 15),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          isMobile
-                              ? _labelFor(u)
-                              : (u == 'ALL_UNITS' ? _labelFor(u) : '$u  —  ${_labelFor(u)}'),
-                          style: TextStyle(color: _c.textPri, fontSize: 13),
-                          overflow: TextOverflow.ellipsis,
+                      PopupMenuItem(
+                        value: 'csv',
+                        child: Row(
+                          children: [
+                            Icon(Icons.table_chart, color: kTeal),
+                            const SizedBox(width: 10),
+                            const Text('Exporter CSV'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'json',
+                        child: Row(
+                          children: [
+                            Icon(Icons.code, color: kTeal),
+                            const SizedBox(width: 10),
+                            const Text('Exporter JSON'),
+                          ],
                         ),
                       ),
                     ],
+                    icon: Icon(Icons.download, color: _c.textPri),
                   ),
-                )).toList(),
-                onChanged: (v) { if (v != null) _switchUnit(v); },
-              ),
-            );
+                ],
+              );
+              // Shared unit dropdown
+              final unitDropdown = DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedUnit,
+                  dropdownColor: _c.card,
+                  isExpanded: isMobile,
+                  style: TextStyle(color: _c.textPri, fontSize: 13),
+                  icon: Icon(Icons.expand_more, color: _c.textSec, size: 18),
+                  items: _units
+                      .map(
+                        (u) => DropdownMenuItem(
+                          value: u,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(_deviceIcon[u]!, color: kTeal, size: 15),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  isMobile
+                                      ? _labelFor(u)
+                                      : (u == 'ALL_UNITS'
+                                            ? _labelFor(u)
+                                            : '$u  —  ${_labelFor(u)}'),
+                                  style: TextStyle(
+                                    color: _c.textPri,
+                                    fontSize: 13,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) _switchUnit(v);
+                  },
+                ),
+              );
 
-            return Container(
-              color: _c.card,
-              padding: EdgeInsets.fromLTRB(16, isMobile ? 12 : 20, 8, isMobile ? 10 : 16),
-              child: isMobile
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Row 1: title + action buttons
-                        Row(children: [
-                          Text('Historique',
-                              style: TextStyle(
+              return Container(
+                color: _c.card,
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  isMobile ? 12 : 20,
+                  8,
+                  isMobile ? 10 : 16,
+                ),
+                child: isMobile
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Row 1: title + action buttons
+                          Row(
+                            children: [
+                              Text(
+                                'Historique',
+                                style: TextStyle(
                                   color: _c.textPri,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 17)),
-                          const Spacer(),
-                          actions,
-                        ]),
-                        const SizedBox(height: 8),
-                        // Row 2: full-width unit dropdown
-                        Container(
-                          decoration: BoxDecoration(
-                            color: _c.bg,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.white12),
+                                  fontSize: 17,
+                                ),
+                              ),
+                              const Spacer(),
+                              actions,
+                            ],
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: unitDropdown,
-                        ),
-                      ],
-                    )
-                  : Row(children: [
-                      unitDropdown,
-                      const SizedBox(width: 12),
-                      Text('Données Historiques',
-                          style: TextStyle(
+                          const SizedBox(height: 8),
+                          // Row 2: full-width unit dropdown
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _c.bg,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: unitDropdown,
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          unitDropdown,
+                          const SizedBox(width: 12),
+                          Text(
+                            'Données Historiques',
+                            style: TextStyle(
                               color: _c.textPri,
                               fontWeight: FontWeight.bold,
-                              fontSize: 18)),
-                      const Spacer(),
-                      actions,
-                    ]),
-            );
-          }),
+                              fontSize: 18,
+                            ),
+                          ),
+                          const Spacer(),
+                          actions,
+                        ],
+                      ),
+              );
+            },
+          ),
           // ── Auto-refresh status bar ──────────────────────────────────────────
           Container(
             color: _c.card,
@@ -1192,7 +1365,8 @@ $predHtml
             child: Row(
               children: [
                 Container(
-                  width: 8, height: 8,
+                  width: 8,
+                  height: 8,
                   decoration: const BoxDecoration(
                     color: AppTheme.successGreen,
                     shape: BoxShape.circle,
@@ -1210,8 +1384,8 @@ $predHtml
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: kTeal))
                 : _historicalData.isEmpty
-                    ? _buildEmptyState()
-                    : _buildContent(),
+                ? _buildEmptyState()
+                : _buildContent(),
           ),
         ],
       ),
@@ -1249,9 +1423,9 @@ $predHtml
             Text(
               'Les données historiques apparaîtront ici',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.darkGray,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.darkGray),
             ),
           ],
         ),
@@ -1306,19 +1480,25 @@ $predHtml
             decoration: BoxDecoration(
               color: _getMetricColor().withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _getMetricColor().withValues(alpha: 0.4)),
+              border: Border.all(
+                color: _getMetricColor().withValues(alpha: 0.4),
+              ),
             ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(_getMetricIcon(), color: _getMetricColor(), size: 13),
-              const SizedBox(width: 5),
-              Text(
-                _getMetricLabel(),
-                style: TextStyle(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(_getMetricIcon(), color: _getMetricColor(), size: 13),
+                const SizedBox(width: 5),
+                Text(
+                  _getMetricLabel(),
+                  style: TextStyle(
                     color: _getMetricColor(),
                     fontSize: 12,
-                    fontWeight: FontWeight.w600),
-              ),
-            ]),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 8),
           Text(
@@ -1329,8 +1509,9 @@ $predHtml
           TextButton.icon(
             onPressed: () => setState(() => _filtersVisible = !_filtersVisible),
             icon: Icon(
-                _filtersVisible ? Icons.expand_less : Icons.tune_rounded,
-                size: 16),
+              _filtersVisible ? Icons.expand_less : Icons.tune_rounded,
+              size: 16,
+            ),
             label: Text(
               _filtersVisible
                   ? AppStrings.t('filters_hide')
@@ -1352,9 +1533,7 @@ $predHtml
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
         color: _c.card,
-        border: Border(
-          bottom: BorderSide(color: Colors.white12, width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.white12, width: 1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1370,21 +1549,27 @@ $predHtml
           Row(
             children: [
               Expanded(
-                child: _buildDateButton(_startDate, () => _selectStartDate(context)),
+                child: _buildDateButton(
+                  _startDate,
+                  () => _selectStartDate(context),
+                ),
               ),
               const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
                   AppStrings.t('date_to'),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildDateButton(_endDate, () => _selectEndDate(context)),
+                child: _buildDateButton(
+                  _endDate,
+                  () => _selectEndDate(context),
+                ),
               ),
               const SizedBox(width: 8),
               Tooltip(
@@ -1402,6 +1587,7 @@ $predHtml
                       _endDate = DateTime.now();
                       _applyDateFilter();
                     });
+                    _runPredictions();
                   },
                 ),
               ),
@@ -1418,9 +1604,9 @@ $predHtml
       icon: const Icon(Icons.calendar_today, size: 18),
       label: Text(
         DateFormat('dd/MM/yyyy').format(date),
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontWeight: FontWeight.w500,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
       ),
       style: OutlinedButton.styleFrom(
         foregroundColor: AppTheme.primaryNavy,
@@ -1444,6 +1630,7 @@ $predHtml
         _startDate = picked;
         _applyDateFilter();
       });
+      _runPredictions();
     }
   }
 
@@ -1460,17 +1647,18 @@ $predHtml
         _endDate = picked;
         _applyDateFilter();
       });
+      _runPredictions();
     }
   }
 
   Widget _buildMetricSelector() {
     const metrics = [
-      ('power',       'metric_power',   Icons.bolt_rounded),
-      ('voltage',     'metric_voltage', Icons.flash_on),
-      ('current',     'metric_current', Icons.electrical_services),
-      ('energy',      'metric_energy',  Icons.battery_charging_full),
-      ('powerFactor', 'metric_pf',      Icons.speed),
-      ('frequency',   'metric_freq',    Icons.waves),
+      ('power', 'metric_power', Icons.bolt_rounded),
+      ('voltage', 'metric_voltage', Icons.flash_on),
+      ('current', 'metric_current', Icons.electrical_services),
+      ('energy', 'metric_energy', Icons.battery_charging_full),
+      ('powerFactor', 'metric_pf', Icons.speed),
+      ('frequency', 'metric_freq', Icons.waves),
     ];
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -1478,11 +1666,14 @@ $predHtml
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(AppStrings.t('metric_label'),
-              style: TextStyle(
-                  color: _c.textSec,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600)),
+          Text(
+            AppStrings.t('metric_label'),
+            style: TextStyle(
+              color: _c.textSec,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -1497,26 +1688,34 @@ $predHtml
                     onTap: () => setState(() => _selectedMetric = m.$1),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: sel ? color.withValues(alpha: 0.15) : _c.card,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                            color: sel ? color : _c.divider, width: 1),
+                          color: sel ? color : _c.divider,
+                          width: 1,
+                        ),
                       ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(m.$3, color: activeColor, size: 13),
-                        const SizedBox(width: 5),
-                        Text(
-                          AppStrings.t(m.$2),
-                          style: TextStyle(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(m.$3, color: activeColor, size: 13),
+                          const SizedBox(width: 5),
+                          Text(
+                            AppStrings.t(m.$2),
+                            style: TextStyle(
                               color: activeColor,
                               fontSize: 12,
                               fontWeight: sel
                                   ? FontWeight.w600
-                                  : FontWeight.normal),
-                        ),
-                      ]),
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -1549,38 +1748,51 @@ $predHtml
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: iconColor.withValues(alpha: 0.25), width: 1),
+          border: Border.all(
+            color: iconColor.withValues(alpha: 0.25),
+            width: 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 18),
                 ),
-                child: Icon(icon, color: iconColor, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(title,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
                     style: const TextStyle(
-                        color: Color(0xFF8899AA), fontSize: 11)),
-              ),
-            ]),
+                      color: Color(0xFF8899AA),
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
-            Text(value,
-                style: TextStyle(
-                    color: valueColor ?? Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold)),
+            Text(
+              value,
+              style: TextStyle(
+                color: valueColor ?? Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             if (subtitle != null) ...[
               const SizedBox(height: 4),
-              Text(subtitle,
-                  style: const TextStyle(
-                      color: Color(0xFF8899AA), fontSize: 11)),
+              Text(
+                subtitle,
+                style: const TextStyle(color: Color(0xFF8899AA), fontSize: 11),
+              ),
             ],
           ],
         ),
@@ -1590,16 +1802,16 @@ $predHtml
     final pfColor = p.pfWillDropBelow
         ? red
         : p.pfTrend == 'falling'
-            ? orange
-            : green;
+        ? orange
+        : green;
 
     final pfIcon = p.pfWillDropBelow
         ? Icons.warning_amber_rounded
         : p.pfTrend == 'rising'
-            ? Icons.trending_up_rounded
-            : p.pfTrend == 'falling'
-                ? Icons.trending_down_rounded
-                : Icons.trending_flat_rounded;
+        ? Icons.trending_up_rounded
+        : p.pfTrend == 'falling'
+        ? Icons.trending_down_rounded
+        : Icons.trending_flat_rounded;
 
     final confPct = (p.costConfidence * 100).round();
 
@@ -1608,98 +1820,123 @@ $predHtml
       decoration: BoxDecoration(
         color: const Color(0xFF111C2D),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: teal.withValues(alpha: 0.3), width: 1.5),
+        border: Border.all(color: teal.withValues(alpha: 0.3), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title row
-          LayoutBuilder(builder: (context, bc) {
-            final narrow = bc.maxWidth < 380;
-            final titleCol = Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(AppStrings.t('ai_predictions'),
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16)),
-                Text(AppStrings.t('ai_model_subtitle'),
-                    style: const TextStyle(
-                        color: Color(0xFF8899AA), fontSize: 11)),
-              ],
-            );
-            final confidenceChip = Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: teal.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text('${AppStrings.t('confidence')} $confPct%',
-                  style: const TextStyle(color: kTeal, fontSize: 11)),
-            );
-            final iconBox = Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                  color: teal.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  color: kTeal, size: 20),
-            );
-            if (narrow) {
-              return Column(
+          LayoutBuilder(
+            builder: (context, bc) {
+              final narrow = bc.maxWidth < 380;
+              final titleCol = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [iconBox, const SizedBox(width: 12), Expanded(child: titleCol)]),
-                  const SizedBox(height: 6),
+                  Text(
+                    AppStrings.t('ai_predictions'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    AppStrings.t('ai_model_subtitle'),
+                    style: const TextStyle(
+                      color: Color(0xFF8899AA),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              );
+              final confidenceChip = Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: teal.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${AppStrings.t('confidence')} $confPct%',
+                  style: const TextStyle(color: kTeal, fontSize: 11),
+                ),
+              );
+              final iconBox = Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: teal.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: kTeal,
+                  size: 20,
+                ),
+              );
+              if (narrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        iconBox,
+                        const SizedBox(width: 12),
+                        Expanded(child: titleCol),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    confidenceChip,
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  iconBox,
+                  const SizedBox(width: 12),
+                  Expanded(child: titleCol),
                   confidenceChip,
                 ],
               );
-            }
-            return Row(children: [
-              iconBox,
-              const SizedBox(width: 12),
-              Expanded(child: titleCol),
-              confidenceChip,
-            ]);
-          }),
+            },
+          ),
           const SizedBox(height: 20),
 
           // Cost row
-          LayoutBuilder(builder: (context, bc) {
-            final narrow = bc.maxWidth < 500;
-            final c1 = predCard(
-              icon: Icons.bolt_rounded,
-              iconColor: orange,
-              title: AppStrings.t('next_day_cost'),
-              value: '${p.nextDayCost.toStringAsFixed(2)} MAD',
-              subtitle: '≈ ${fmtEnergyUnit(p.nextDayEnergyMwh, _energyUnit)}',
-              valueColor: orange,
-            );
-            final c2 = predCard(
-              icon: Icons.calendar_month_rounded,
-              iconColor: teal,
-              title: AppStrings.t('month_end_cost'),
-              value: '${p.monthEndCost.toStringAsFixed(2)} MAD',
-              subtitle: narrow
-                  ? '${p.monthToDateCost.toStringAsFixed(2)} MAD · ${p.daysRemainingInMonth}j restants'
-                  : '${p.monthToDateCost.toStringAsFixed(2)} MAD déjà · ${p.daysRemainingInMonth}j restants',
-              valueColor: teal,
-            );
-            if (narrow) {
-              return Column(children: [
-                c1,
-                const SizedBox(height: 12),
-                c2,
-              ]);
-            }
-            return Row(children: [
-              Expanded(child: c1),
-              const SizedBox(width: 14),
-              Expanded(child: c2),
-            ]);
-          }),
+          LayoutBuilder(
+            builder: (context, bc) {
+              final narrow = bc.maxWidth < 500;
+              final c1 = predCard(
+                icon: Icons.bolt_rounded,
+                iconColor: orange,
+                title: AppStrings.t('next_day_cost'),
+                value: '${p.nextDayCost.toStringAsFixed(2)} MAD',
+                subtitle: '≈ ${fmtEnergyUnit(p.nextDayEnergyMwh, _energyUnit)}',
+                valueColor: orange,
+              );
+              final c2 = predCard(
+                icon: Icons.calendar_month_rounded,
+                iconColor: teal,
+                title: AppStrings.t('month_end_cost'),
+                value: '${p.monthEndCost.toStringAsFixed(2)} MAD',
+                subtitle: narrow
+                    ? '${p.monthToDateCost.toStringAsFixed(2)} MAD · ${p.daysRemainingInMonth}j restants'
+                    : '${p.monthToDateCost.toStringAsFixed(2)} MAD déjà · ${p.daysRemainingInMonth}j restants',
+                valueColor: teal,
+              );
+              if (narrow) {
+                return Column(children: [c1, const SizedBox(height: 12), c2]);
+              }
+              return Row(
+                children: [
+                  Expanded(child: c1),
+                  const SizedBox(width: 14),
+                  Expanded(child: c2),
+                ],
+              );
+            },
+          ),
           const SizedBox(height: 14),
 
           // Power factor row
@@ -1709,50 +1946,58 @@ $predHtml
               color: cardColor,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                  color: pfColor.withValues(alpha: 0.4), width: 1.2),
-            ),
-            child: Row(children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: pfColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(pfIcon, color: pfColor, size: 22),
+                color: pfColor.withValues(alpha: 0.4),
+                width: 1.2,
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      p.pfWillDropBelow
-                          ? '⚠  ${AppStrings.t('pf_alert_drop')} ${p.minutesUntilPfDrop?.toStringAsFixed(1) ?? '<1'} min'
-                          : AppStrings.t('pf_stable'),
-                      style: TextStyle(
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: pfColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(pfIcon, color: pfColor, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        p.pfWillDropBelow
+                            ? '⚠  ${AppStrings.t('pf_alert_drop')} ${p.minutesUntilPfDrop?.toStringAsFixed(1) ?? '<1'} min'
+                            : AppStrings.t('pf_stable'),
+                        style: TextStyle(
                           color: pfColor,
                           fontWeight: FontWeight.bold,
-                          fontSize: 13),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'FP dans 10 min: ${p.predictedPf10min.toStringAsFixed(3)}'
-                      '   ·   Tendance: ${p.pfTrend}',
-                      style: const TextStyle(
-                          color: Color(0xFF8899AA), fontSize: 11),
-                    ),
-                  ],
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'FP dans 10 min: ${p.predictedPf10min.toStringAsFixed(3)}'
+                        '   ·   Tendance: ${p.pfTrend}',
+                        style: const TextStyle(
+                          color: Color(0xFF8899AA),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                p.predictedPf10min.toStringAsFixed(3),
-                style: TextStyle(
+                const SizedBox(width: 12),
+                Text(
+                  p.predictedPf10min.toStringAsFixed(3),
+                  style: TextStyle(
                     color: pfColor,
                     fontWeight: FontWeight.bold,
-                    fontSize: 26),
-              ),
-            ]),
+                    fontSize: 26,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1768,9 +2013,9 @@ $predHtml
           children: [
             Text(
               '${AppStrings.t('chart_evolution')} ${_getMetricLabel()}',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -1795,7 +2040,10 @@ $predHtml
                         labelStyle: Theme.of(context).textTheme.labelSmall,
                       ),
                       legend: _selectedUnit == _allUnitsKey
-                          ? const Legend(isVisible: true, position: LegendPosition.bottom)
+                          ? const Legend(
+                              isVisible: true,
+                              position: LegendPosition.bottom,
+                            )
                           : const Legend(isVisible: false),
                       series: _selectedUnit == _allUnitsKey
                           ? <CartesianSeries>[
@@ -1804,7 +2052,8 @@ $predHtml
                                   name: _labelFor(u),
                                   dataSource: _allUnitsFiltered[u] ?? [],
                                   xValueMapper: (data, _) => data.timestamp,
-                                  yValueMapper: (data, _) => _getMetricValue(data),
+                                  yValueMapper: (data, _) =>
+                                      _getMetricValue(data),
                                   color: _unitColors[u]!,
                                   width: 2,
                                 ),
@@ -1813,7 +2062,8 @@ $predHtml
                               LineSeries<EnergyData, DateTime>(
                                 dataSource: _filteredData,
                                 xValueMapper: (data, _) => data.timestamp,
-                                yValueMapper: (data, _) => _getMetricValue(data),
+                                yValueMapper: (data, _) =>
+                                    _getMetricValue(data),
                                 color: _getMetricColor(),
                                 width: 2.5,
                               ),
@@ -1822,7 +2072,10 @@ $predHtml
                         enable: true,
                         borderColor: AppTheme.primaryNavy,
                         color: AppTheme.primaryNavy.withValues(alpha: 0.9),
-                        textStyle: const TextStyle(color: Colors.white, fontSize: 12),
+                        textStyle: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
             ),
@@ -1849,9 +2102,9 @@ $predHtml
           children: [
             Text(
               AppStrings.t('statistics'),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 20),
             Row(
@@ -1918,7 +2171,7 @@ $predHtml
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (unit.isNotEmpty) ...[  
+                if (unit.isNotEmpty) ...[
                   const SizedBox(width: 4),
                   Text(
                     unit,
@@ -1944,9 +2197,9 @@ $predHtml
           children: [
             Text(
               AppStrings.t('last_readings'),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -1962,17 +2215,19 @@ $predHtml
                     )
                   : ListView.separated(
                       itemCount: _filteredData.length,
-                      separatorBuilder: (context, index) => Divider(
-                        color: Colors.grey[200],
-                        height: 1,
-                      ),
+                      separatorBuilder: (context, index) =>
+                          Divider(color: Colors.grey[200], height: 1),
                       itemBuilder: (context, index) {
-                        final data = _filteredData[_filteredData.length - 1 - index];
+                        final data =
+                            _filteredData[_filteredData.length - 1 - index];
                         final rowColor = _selectedUnit == _allUnitsKey
                             ? (_unitColors[data.unitId] ?? kTeal)
                             : _getMetricColor();
                         return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 0,
+                          ),
                           leading: Container(
                             decoration: BoxDecoration(
                               color: rowColor.withValues(alpha: 0.15),
@@ -1989,9 +2244,8 @@ $predHtml
                           ),
                           title: Text(
                             _formatTimestamp(data.timestamp),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(fontWeight: FontWeight.w600),
                           ),
                           subtitle: Text(
                             '${_getMetricLabel()}: ${_getMetricValue(data).toStringAsFixed(2)} ${_getMetricUnit()}'
@@ -2003,13 +2257,17 @@ $predHtml
                               color: rowColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             child: Text(
                               _getMetricValue(data).toStringAsFixed(1),
-                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: rowColor,
-                              ),
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: rowColor,
+                                  ),
                             ),
                           ),
                         );
@@ -2031,46 +2289,111 @@ $predHtml
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              SizedBox(width: 74, child: Text('${AppStrings.t('metric_energy')}:', style: TextStyle(color: _c.textSec, fontSize: 12))),
-              const SizedBox(width: 4),
-              ...['mWh', 'Wh', 'kWh'].map((u) => Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: _histUnitChip(u, _energyUnit, kTeal, 'unitEnergy', (v) => setState(() => _energyUnit = v)),
-              )),
-            ]),
+            Row(
+              children: [
+                SizedBox(
+                  width: 74,
+                  child: Text(
+                    '${AppStrings.t('metric_energy')}:',
+                    style: TextStyle(color: _c.textSec, fontSize: 12),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                ...['mWh', 'Wh', 'kWh'].map(
+                  (u) => Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: _histUnitChip(
+                      u,
+                      _energyUnit,
+                      kTeal,
+                      'unitEnergy',
+                      (v) => setState(() => _energyUnit = v),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
-            Row(children: [
-              SizedBox(width: 74, child: Text('${AppStrings.t('metric_power')}:', style: TextStyle(color: _c.textSec, fontSize: 12))),
-              const SizedBox(width: 4),
-              ...['mW', 'W', 'kW'].map((u) => Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: _histUnitChip(u, _powerUnit, kOrange, 'unitPower', (v) => setState(() => _powerUnit = v)),
-              )),
-            ]),
+            Row(
+              children: [
+                SizedBox(
+                  width: 74,
+                  child: Text(
+                    '${AppStrings.t('metric_power')}:',
+                    style: TextStyle(color: _c.textSec, fontSize: 12),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                ...['mW', 'W', 'kW'].map(
+                  (u) => Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: _histUnitChip(
+                      u,
+                      _powerUnit,
+                      kOrange,
+                      'unitPower',
+                      (v) => setState(() => _powerUnit = v),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
-            Row(children: [
-              SizedBox(width: 74, child: Text('${AppStrings.t('metric_voltage')}:', style: TextStyle(color: _c.textSec, fontSize: 12))),
-              const SizedBox(width: 4),
-              ...['mV', 'V'].map((u) => Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: _histUnitChip(u, _voltageUnit, const Color(0xFF4FC3F7), 'unitVoltage', (v) => setState(() => _voltageUnit = v)),
-              )),
-              const SizedBox(width: 16),
-              Text('${AppStrings.t('metric_current')}:', style: TextStyle(color: _c.textSec, fontSize: 12)),
-              const SizedBox(width: 4),
-              ...['mA', 'A'].map((u) => Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: _histUnitChip(u, _currentUnit, const Color(0xFFFF6B8A), 'unitCurrent', (v) => setState(() => _currentUnit = v)),
-              )),
-            ]),
+            Row(
+              children: [
+                SizedBox(
+                  width: 74,
+                  child: Text(
+                    '${AppStrings.t('metric_voltage')}:',
+                    style: TextStyle(color: _c.textSec, fontSize: 12),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                ...['mV', 'V'].map(
+                  (u) => Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: _histUnitChip(
+                      u,
+                      _voltageUnit,
+                      const Color(0xFF4FC3F7),
+                      'unitVoltage',
+                      (v) => setState(() => _voltageUnit = v),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  '${AppStrings.t('metric_current')}:',
+                  style: TextStyle(color: _c.textSec, fontSize: 12),
+                ),
+                const SizedBox(width: 4),
+                ...['mA', 'A'].map(
+                  (u) => Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: _histUnitChip(
+                      u,
+                      _currentUnit,
+                      const Color(0xFFFF6B8A),
+                      'unitCurrent',
+                      (v) => setState(() => _currentUnit = v),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _histUnitChip(String unit, String selected, Color accent, String prefKey, void Function(String) onSelect) {
+  Widget _histUnitChip(
+    String unit,
+    String selected,
+    Color accent,
+    String prefKey,
+    void Function(String) onSelect,
+  ) {
     final sel = selected == unit;
     return GestureDetector(
       onTap: () async {
@@ -2085,11 +2408,14 @@ $predHtml
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: sel ? accent : _c.divider),
         ),
-        child: Text(unit, style: TextStyle(
-          color: sel ? accent : _c.textSec,
-          fontSize: 11,
-          fontWeight: sel ? FontWeight.w600 : FontWeight.normal,
-        )),
+        child: Text(
+          unit,
+          style: TextStyle(
+            color: sel ? accent : _c.textSec,
+            fontSize: 11,
+            fontWeight: sel ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }
@@ -2119,37 +2445,58 @@ $predHtml
 
   String _getMetricLabel() {
     switch (_selectedMetric) {
-      case 'power':       return AppStrings.t('metric_power');
-      case 'voltage':     return AppStrings.t('metric_voltage');
-      case 'current':     return AppStrings.t('metric_current');
-      case 'energy':      return AppStrings.t('metric_energy');
-      case 'powerFactor': return AppStrings.t('metric_pf');
-      case 'frequency':   return AppStrings.t('metric_freq');
-      default:            return AppStrings.t('metric_power');
+      case 'power':
+        return AppStrings.t('metric_power');
+      case 'voltage':
+        return AppStrings.t('metric_voltage');
+      case 'current':
+        return AppStrings.t('metric_current');
+      case 'energy':
+        return AppStrings.t('metric_energy');
+      case 'powerFactor':
+        return AppStrings.t('metric_pf');
+      case 'frequency':
+        return AppStrings.t('metric_freq');
+      default:
+        return AppStrings.t('metric_power');
     }
   }
 
   String _getMetricUnit() {
     switch (_selectedMetric) {
-      case 'power':       return _powerUnit;
-      case 'voltage':     return _voltageUnit;
-      case 'current':     return _currentUnit;
-      case 'energy':      return _energyUnit;
-      case 'powerFactor': return '';
-      case 'frequency':   return 'Hz';
-      default:            return _powerUnit;
+      case 'power':
+        return _powerUnit;
+      case 'voltage':
+        return _voltageUnit;
+      case 'current':
+        return _currentUnit;
+      case 'energy':
+        return _energyUnit;
+      case 'powerFactor':
+        return '';
+      case 'frequency':
+        return 'Hz';
+      default:
+        return _powerUnit;
     }
   }
 
   String _getYAxisFormat() {
     switch (_selectedMetric) {
-      case 'powerFactor':  return '{value}';
-      case 'power':        return '{value} $_powerUnit';
-      case 'voltage':      return '{value} $_voltageUnit';
-      case 'current':      return '{value} $_currentUnit';
-      case 'energy':       return '{value} $_energyUnit';
-      case 'frequency':    return '{value} Hz';
-      default:             return '{value}';
+      case 'powerFactor':
+        return '{value}';
+      case 'power':
+        return '{value} $_powerUnit';
+      case 'voltage':
+        return '{value} $_voltageUnit';
+      case 'current':
+        return '{value} $_currentUnit';
+      case 'energy':
+        return '{value} $_energyUnit';
+      case 'frequency':
+        return '{value} Hz';
+      default:
+        return '{value}';
     }
   }
 
@@ -2204,9 +2551,9 @@ $predHtml
           children: [
             Text(
               '${AppStrings.t('per_unit_stats')} — ${_getMetricLabel()}',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 16),
             ..._allUnitsList.map(_buildUnitStatRow),
@@ -2227,28 +2574,58 @@ $predHtml
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [
-          Icon(_deviceIcon[unit]!, color: color, size: 16),
-          const SizedBox(width: 6),
-          Text(
-            _labelFor(unit),
-            style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            '(${data.length} pts)',
-            style: TextStyle(color: _c.textSec, fontSize: 11),
-          ),
-        ]),
+        Row(
+          children: [
+            Icon(_deviceIcon[unit]!, color: color, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              _labelFor(unit),
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '(${data.length} pts)',
+              style: TextStyle(color: _c.textSec, fontSize: 11),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
-        Row(children: [
-          Expanded(child: _buildStatItem(AppStrings.t('stat_min'), minVal.toStringAsFixed(2), _getMetricUnit(), color)),
-          Container(width: 1, height: 60, color: Colors.grey[200]),
-          Expanded(child: _buildStatItem(AppStrings.t('stat_max'), maxVal.toStringAsFixed(2), _getMetricUnit(), color)),
-          Container(width: 1, height: 60, color: Colors.grey[200]),
-          Expanded(child: _buildStatItem(AppStrings.t('stat_avg'), avg.toStringAsFixed(2), _getMetricUnit(), color)),
-        ]),
-        if (unit != _allUnitsList.last) Divider(color: Colors.grey[200], height: 24),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatItem(
+                AppStrings.t('stat_min'),
+                minVal.toStringAsFixed(2),
+                _getMetricUnit(),
+                color,
+              ),
+            ),
+            Container(width: 1, height: 60, color: Colors.grey[200]),
+            Expanded(
+              child: _buildStatItem(
+                AppStrings.t('stat_max'),
+                maxVal.toStringAsFixed(2),
+                _getMetricUnit(),
+                color,
+              ),
+            ),
+            Container(width: 1, height: 60, color: Colors.grey[200]),
+            Expanded(
+              child: _buildStatItem(
+                AppStrings.t('stat_avg'),
+                avg.toStringAsFixed(2),
+                _getMetricUnit(),
+                color,
+              ),
+            ),
+          ],
+        ),
+        if (unit != _allUnitsList.last)
+          Divider(color: Colors.grey[200], height: 24),
       ],
     );
   }

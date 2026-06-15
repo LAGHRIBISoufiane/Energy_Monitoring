@@ -62,6 +62,9 @@ const long metricsInterval = 2000;
 bool isIna40Ready = false;
 bool isIna41Ready = false;
 
+const float AC_CURRENT_NOISE_A = 0.005;
+const float AC_POWER_NOISE_W = 0.5;
+
 // ADD: NTP timestamp helper
 String getIsoTimestamp() {
   struct tm t;
@@ -178,15 +181,33 @@ void loop() {
     float acEnergy   = pzem.energy();    // ADD: kWh odometer
     float acFreq     = pzem.frequency(); // ADD: Hz
 
-    if (!isnan(acVoltage)) {
-      Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/voltage",      acVoltage);
-      Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/current",      acCurrent);
-      Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/power",        acPower);
-      Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/power_factor", acPf);
-      // ADD: energy + frequency
-      if (!isnan(acEnergy)) Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/energy",    acEnergy);
-      if (!isnan(acFreq))   Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/frequency", acFreq);
+    bool pzemOnline = !isnan(acVoltage);
+    bool acCurrentValid = !isnan(acCurrent);
+    bool acPowerValid = !isnan(acPower);
+    bool loadLooksOff =
+      !pzemOnline ||
+      !acCurrentValid ||
+      !acPowerValid ||
+      (abs(acCurrent) <= AC_CURRENT_NOISE_A && abs(acPower) <= AC_POWER_NOISE_W);
+
+    if (!pzemOnline) acVoltage = 0.0;
+    if (loadLooksOff) {
+      acCurrent = 0.0;
+      acPower = 0.0;
+      acPf = 0.0;
+    } else if (isnan(acPf)) {
+      acPf = 0.0;
     }
+
+    Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/voltage",      acVoltage);
+    Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/current",      acCurrent);
+    Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/power",        acPower);
+    Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/power_factor", acPf);
+    Firebase.setString(fbdo_fan, "/KOFERT_Unit_1/current_metrics/load_status",
+                       !pzemOnline ? "pzem_offline" : (loadLooksOff ? "load_off" : "active"));
+    // ADD: energy + frequency. Keep the last valid RTDB value if PZEM is offline.
+    if (!isnan(acEnergy)) Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/energy",    acEnergy);
+    if (!isnan(acFreq))   Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/frequency", acFreq);
 
     // ── UNIT 2 & 3 : DC (INA219) ────────────────────────────────────────────
     float fanVoltage  = 0.0, fanCurrent  = 0.0, fanPower  = 0.0;
@@ -239,15 +260,16 @@ void loop() {
     // Serial monitor (unchanged)
     Serial.println("\n==================================================");
     Serial.println("[UNIT 1 - RESEAU ALIMENTATION GENERALE AC]");
-    if (!isnan(acVoltage)) {
+    if (pzemOnline) {
       Serial.printf("  -> Tension     : %.1f V\n",  acVoltage);
       Serial.printf("  -> Intensite   : %.2f A\n",  acCurrent);
       Serial.printf("  -> Puissance   : %.1f W\n",  acPower);
       Serial.printf("  -> Facteur Pf  : %.2f\n",    acPf);
+      Serial.printf("  -> Etat charge : %s\n",      loadLooksOff ? "OFF" : "ACTIVE");
       Serial.printf("  -> Energie     : %.3f kWh\n", isnan(acEnergy) ? 0.0f : acEnergy);
       Serial.printf("  -> Frequence   : %.1f Hz\n",  isnan(acFreq)   ? 0.0f : acFreq);
     } else {
-      Serial.println("  -> [ERREUR] PZEM-004T introuvable !");
+      Serial.println("  -> [ERREUR] PZEM-004T introuvable, courant force a 0A dans RTDB.");
     }
     Serial.println("[UNIT 2 - VENTILATION]");
     Serial.printf("  -> %.2fV  %.3fA  %.2fW  Cumulé: %.5f kWh\n",
