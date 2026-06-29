@@ -19,9 +19,11 @@ class AutoReportService {
   static final instance = AutoReportService._();
 
   // ── EmailJS credentials (same as HistoricalScreen) ─────────────────────────
-  static const _emailjsServiceId  = 'service_1tovyp1';
+  static const _emailjsServiceId = 'service_1tovyp1';
   static const _emailjsTemplateId = 'template_9cy6uou';
-  static const _emailjsPublicKey  = 'mD7lZMFFUPuDZlNRf';
+  static const _emailjsPublicKey = 'mD7lZMFFUPuDZlNRf';
+  static const _emailIntro =
+      'Veuillez trouver ci-dessous les données et la Prévision Énergétique de votre installation.';
 
   Timer? _timer;
 
@@ -74,10 +76,11 @@ class AutoReportService {
 
     try {
       // Fetch up to 2016 points (covers ~7 days at 5-min intervals).
-      final allData =
-          await EnergyRepository.instance.getHistoricalData(unit, limit: 2016);
-      final data =
-          allData.where((d) => d.timestamp.isAfter(cutoff)).toList();
+      final allData = await EnergyRepository.instance.getHistoricalData(
+        unit,
+        limit: 2016,
+      );
+      final data = allData.where((d) => d.timestamp.isAfter(cutoff)).toList();
       if (data.isEmpty) return;
 
       final avgPower =
@@ -87,23 +90,28 @@ class AutoReportService {
       // Energy is a cumulative counter. Correct total = max - min (counter advance).
       final totalEnergy = data.isNotEmpty
           ? (data.map((e) => e.energy).reduce((a, b) => a > b ? a : b) -
-             data.map((e) => e.energy).reduce((a, b) => a < b ? a : b)).clamp(0, double.infinity)
+                    data.map((e) => e.energy).reduce((a, b) => a < b ? a : b))
+                .clamp(0, double.infinity)
           : 0.0;
       final tariff = prefs.getDouble('tariffRate') ?? 1.15;
       // mWh → kWh (÷1 000 000), then × tariff (MAD/kWh)
       final estimatedCost = (totalEnergy / 1000000.0) * tariff;
 
-      final fmt         = DateFormat('dd/MM/yyyy');
-      final timeFmt      = DateFormat('dd/MM/yyyy HH:mm');
-      final periodLabel  = frequency == 'daily'
+      final fmt = DateFormat('dd/MM/yyyy');
+      final timeFmt = DateFormat('dd/MM/yyyy HH:mm');
+      final periodLabel = frequency == 'daily'
           ? 'Rapport Quotidien (24h)'
           : 'Rapport Hebdomadaire (7j)';
-      final unitLabel    = '$unit — $periodLabel';
-      final subject      = '$periodLabel — $unit (${fmt.format(cutoff)} → ${fmt.format(now)})';
-      final avgVoltage   = data.map((e) => e.voltage).reduce((a, b) => a + b) / data.length;
-      final avgCurrent   = data.map((e) => e.current).reduce((a, b) => a + b) / data.length;
+      final unitLabel = '$unit — $periodLabel';
+      final subject =
+          '$periodLabel — $unit (${fmt.format(cutoff)} → ${fmt.format(now)})';
+      final avgVoltage =
+          data.map((e) => e.voltage).reduce((a, b) => a + b) / data.length;
+      final avgCurrent =
+          data.map((e) => e.current).reduce((a, b) => a + b) / data.length;
 
-      final message = '''
+      final message =
+          '''
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:620px">
   <!-- Header -->
   <table cellpadding="0" cellspacing="0" width="100%" style="background:#0D47A1;border-radius:8px 8px 0 0">
@@ -152,7 +160,11 @@ class AutoReportService {
   </tr>
   <tr>
     <td style="padding:10px 14px;border:1px solid #e0e0e0;color:#888">Énergie totale</td>
-    <td style="padding:10px 14px;border:1px solid #e0e0e0;font-weight:600;color:#27ae60">${totalEnergy >= 1000000 ? (totalEnergy / 1000000).toStringAsFixed(2) + ' kWh' : totalEnergy >= 1000 ? (totalEnergy / 1000).toStringAsFixed(2) + ' Wh' : totalEnergy.toStringAsFixed(2) + ' mWh'}</td>
+    <td style="padding:10px 14px;border:1px solid #e0e0e0;font-weight:600;color:#27ae60">${totalEnergy >= 1000000
+              ? (totalEnergy / 1000000).toStringAsFixed(2) + ' kWh'
+              : totalEnergy >= 1000
+              ? (totalEnergy / 1000).toStringAsFixed(2) + ' Wh'
+              : totalEnergy.toStringAsFixed(2) + ' mWh'}</td>
   </tr>
   <tr style="background:#f8f9fa">
     <td style="padding:10px 14px;border:1px solid #e0e0e0;color:#888">Coût estimé</td>
@@ -177,15 +189,16 @@ class AutoReportService {
               'origin': html.window.location.href,
             },
             body: jsonEncode({
-              'service_id':  _emailjsServiceId,
+              'service_id': _emailjsServiceId,
               'template_id': _emailjsTemplateId,
-              'user_id':     _emailjsPublicKey,
+              'user_id': _emailjsPublicKey,
               'template_params': {
-                'name':     unitLabel,
-                'time':     timeFmt.format(now),
+                'name': unitLabel,
+                'time': timeFmt.format(now),
                 'to_email': toEmail,
-                'subject':  subject,
-                'message':  message,
+                'subject': subject,
+                'intro': _emailIntro,
+                'message': message,
               },
             }),
           );
@@ -197,8 +210,7 @@ class AutoReportService {
 
       if (anySent) {
         // Record timestamp so the next check knows not to re-send immediately.
-        await prefs.setInt(
-            'autoReportLastSentMs', now.millisecondsSinceEpoch);
+        await prefs.setInt('autoReportLastSentMs', now.millisecondsSinceEpoch);
       }
     } catch (_) {
       // Silent fail — will retry on next hourly tick.

@@ -38,6 +38,8 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
   static const _emailjsServiceId = 'service_1tovyp1';
   static const _emailjsTemplateId = 'template_9cy6uou';
   static const _emailjsPublicKey = 'mD7lZMFFUPuDZlNRf';
+  static const _emailIntro =
+      'Veuillez trouver ci-dessous les données et la Prévision Énergétique de votre installation.';
 
   bool _isSendingEmail = false;
   List<EnergyData> _historicalData = [];
@@ -325,7 +327,11 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
       current: n(m['current']),
       powerFactor: n(m['powerFactor']),
       power: n(m['power']),
-      energy: normalizeStoredEnergyMwh(n(m['energy']), unitId),
+      energy: normalizeEnergyFieldMwh(
+        n(m['energy']),
+        unitId,
+        unit: (m['energyUnit'] ?? m['energy_unit'])?.toString(),
+      ),
       frequency: n(m['frequency'], 50.0),
       windSpeed: n(m['fanSpeed']),
       waterLevel: (m['waterLevel'] as num?)?.toInt() ?? 0,
@@ -568,17 +574,18 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
       // Energy is a cumulative counter (odometer). Correct total = sum of
       // (max − min) per unit, NOT the sum of all readings.
       final totalEnergy = () {
-        final Map<String, List<double>> byUnit = {};
+        final Map<String, List<EnergyData>> byUnit = {};
         for (final e in _filteredData) {
-          byUnit.putIfAbsent(e.unitId, () => []).add(e.energy);
+          byUnit.putIfAbsent(e.unitId, () => []).add(e);
         }
         double total = 0.0;
         for (final vals in byUnit.values) {
-          if (vals.isEmpty) continue;
-          final delta =
-              vals.reduce((a, b) => a > b ? a : b) -
-              vals.reduce((a, b) => a < b ? a : b);
-          if (delta > 0) total += delta;
+          vals.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+          total += periodConsumptionFromSeriesMwh(
+            meterReadingsMwh: vals.map((p) => p.energy).toList(),
+            timestamps: vals.map((p) => p.timestamp).toList(),
+            powersW: vals.map((p) => p.power).toList(),
+          );
         }
         return total;
       }();
@@ -783,7 +790,7 @@ class _HistoricalScreenState extends State<HistoricalScreen> {
   $invoicePredHtml
 </table>
 
-<h3 style="color:#1a3a5c;margin:20px 0 12px">&#129302; Prévision Energitique — Compteur + tendance</h3>
+<h3 style="color:#1a3a5c;margin:20px 0 12px">&#129302; Prévision Énergétique — Compteur + tendance</h3>
 $predHtml
 
 <h3 style="color:#1a3a5c;margin:20px 0 12px">&#128203; Échantillon des données ($sampleLabel)</h3>
@@ -828,6 +835,7 @@ $predHtml
             'time': timeFmt.format(DateTime.now()),
             'to_email': toEmail,
             'subject': subject,
+            'intro': _emailIntro,
             'message': message,
           },
         }),
@@ -924,7 +932,7 @@ $predHtml
 
       // Predictions sheet
       if (_predictions != null) {
-        final pSheet = excel['Prévision Energitique'];
+        final pSheet = excel['Prévision Énergétique'];
         pSheet.appendRow([
           xl.TextCellValue('Indicateur'),
           xl.TextCellValue('Valeur'),

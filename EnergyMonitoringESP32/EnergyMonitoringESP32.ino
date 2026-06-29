@@ -207,6 +207,7 @@ void loop() {
                        !pzemOnline ? "pzem_offline" : (loadLooksOff ? "load_off" : "active"));
     // ADD: energy + frequency. Keep the last valid RTDB value if PZEM is offline.
     if (!isnan(acEnergy)) Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/energy",    acEnergy);
+    Firebase.setString(fbdo_fan, "/KOFERT_Unit_1/current_metrics/energy_unit", "kWh");
     if (!isnan(acFreq))   Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_1/current_metrics/frequency", acFreq);
 
     // ── UNIT 2 & 3 : DC (INA219) ────────────────────────────────────────────
@@ -241,12 +242,14 @@ void loop() {
     Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_2/current_metrics/current", fanCurrent);
     Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_2/current_metrics/power",   fanPower);
     Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_2/current_metrics/energy",  ina40EnergyKwh); // ADD
+    Firebase.setString(fbdo_fan, "/KOFERT_Unit_2/current_metrics/energy_unit", "kWh");
 
     // Envoi Unit 3
     Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_3/current_metrics/voltage",  pumpVoltage);
     Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_3/current_metrics/current",  abs(pumpCurrent));
     Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_3/current_metrics/power",    pumpPower);
     Firebase.setFloat(fbdo_fan, "/KOFERT_Unit_3/current_metrics/energy",   ina41EnergyKwh); // ADD
+    Firebase.setString(fbdo_fan, "/KOFERT_Unit_3/current_metrics/energy_unit", "kWh");
     Firebase.setInt  (fbdo_fan, "/KOFERT_Unit_3/current_metrics/water_level", globalWaterPercent);
 
     // ADD: ISO timestamp for all units

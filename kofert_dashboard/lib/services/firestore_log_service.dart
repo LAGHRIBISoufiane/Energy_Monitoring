@@ -91,7 +91,8 @@ class FirestoreLogService {
     // Power and energy for all units
     base['power'] = d.power;
     // Store energy as mWh (internal unit) — consistent with all historical records
-    base['energy'] = normalizeStoredEnergyMwh(d.energy, d.unitId);
+    base['energy'] = d.energy.isFinite && d.energy > 0 ? d.energy : 0.0;
+    base['energyUnit'] = 'mWh';
 
     // AC-only fields (KOFERT_Unit_1 / PZEM)
     if (!d.isINA219) {
@@ -261,7 +262,11 @@ class FirestoreLogService {
       final data = snap.docs.first.data();
       final rawEnergy = (data['energy'] as num?)?.toDouble();
       if (rawEnergy == null) return null;
-      return normalizeStoredEnergyMwh(rawEnergy, unitId);
+      return normalizeEnergyFieldMwh(
+        rawEnergy,
+        unitId,
+        unit: (data['energyUnit'] ?? data['energy_unit'])?.toString(),
+      );
     } catch (_) {
       return null;
     }
@@ -285,9 +290,10 @@ class FirestoreLogService {
           .orderBy('timestamp', descending: false)
           .get();
 
-      double total = 0.0;
+      final readings = <double>[];
+      final timestamps = <DateTime>[];
+      final powers = <double>[];
       double? firstEnergy;
-      double? prevEnergy;
       double? lastEnergy;
 
       for (final doc in snap.docs) {
@@ -295,14 +301,25 @@ class FirestoreLogService {
         final rawEnergy = (data['energy'] as num?)?.toDouble();
         if (rawEnergy == null) continue;
 
-        final energy = normalizeStoredEnergyMwh(rawEnergy, unitId);
+        final energy = normalizeEnergyFieldMwh(
+          rawEnergy,
+          unitId,
+          unit: (data['energyUnit'] ?? data['energy_unit'])?.toString(),
+        );
+        final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
         firstEnergy ??= energy;
-        if (prevEnergy != null) {
-          total += sumPositiveEnergyDeltasMwh([prevEnergy, energy]);
+        if (timestamp != null) {
+          readings.add(energy);
+          timestamps.add(timestamp);
+          powers.add((data['power'] as num?)?.toDouble() ?? 0.0);
         }
-        prevEnergy = energy;
         lastEnergy = energy;
       }
+      final total = periodConsumptionFromSeriesMwh(
+        meterReadingsMwh: readings,
+        timestamps: timestamps,
+        powersW: powers,
+      );
 
       return (
         totalEnergy: total,
