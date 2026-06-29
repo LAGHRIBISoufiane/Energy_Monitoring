@@ -14,12 +14,10 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
+    "site": "ocp-energy-monitor",
     "public": "kofert_dashboard/build/web",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "cleanUrls": true,
-    "version": {
-      "maxVersions": 1
-    },
     "rewrites": [
       {
         "source": "**",
