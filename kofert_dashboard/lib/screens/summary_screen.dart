@@ -110,17 +110,18 @@ class _SummaryScreenState extends State<SummaryScreen>
       for (final doc in snap.docs) {
         try {
           final d = doc.data();
-          final energyMwh = normalizeStoredEnergyMwh(
+          final energyMwh = normalizeEnergyFieldMwh(
             ((d['energy'] as num?)?.toDouble() ?? 0),
             unitId,
+            unit: (d['energyUnit'] ?? d['energy_unit'])?.toString(),
           );
           final mapped = <String, dynamic>{
             'voltage': d['voltage'],
             'current': d['current'],
             'power_factor': d['powerFactor'],
             'power': d['power'],
-            // energy is stored as mWh in Firestore; fromJson expects kWh (multiplies by 1M)
-            'energy': energyMwh / 1000000,
+            'energy_mwh': energyMwh,
+            'energy_unit': 'mWh',
             'frequency': d['frequency'],
             'fan_speed': (d['fanSpeed'] as num?)?.toInt(),
             'water_level': (d['waterLevel'] as num?)?.toInt(),
@@ -280,7 +281,11 @@ class _SummaryScreenState extends State<SummaryScreen>
     return map.entries.map((e) {
       final pts = [...e.value]
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-      final totalEnergy = sumPositiveEnergyDeltasMwh(pts.map((p) => p.energy));
+      final totalEnergy = periodConsumptionFromSeriesMwh(
+        meterReadingsMwh: pts.map((p) => p.energy).toList(),
+        timestamps: pts.map((p) => p.timestamp).toList(),
+        powersW: pts.map((p) => p.power).toList(),
+      );
       final peakPower = pts.fold(0.0, (m, p) => p.power > m ? p.power : m);
       final avgPF = pts.isEmpty
           ? 0.0

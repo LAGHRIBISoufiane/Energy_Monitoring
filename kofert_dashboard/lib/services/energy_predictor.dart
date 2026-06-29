@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import '../models/energy_data.dart';
+import '../utils/energy_format.dart';
 
 /// Result of an energy prediction run.
 class PredictionResult {
@@ -253,40 +254,17 @@ class EnergyPredictor {
 
     if (points.length < 2) return const _EnergyWindow.empty();
 
-    double meterDeltaEnergy = 0.0;
-    double integratedEnergy = 0.0;
-    DateTime? first;
-    DateTime? last;
-
-    for (int i = 1; i < points.length; i++) {
-      final prev = points[i - 1];
-      final curr = points[i];
-      final dtHours =
-          curr.timestamp.difference(prev.timestamp).inSeconds / 3600.0;
-      if (dtHours <= 0) continue;
-
-      first ??= prev.timestamp;
-      last = curr.timestamp;
-
-      final delta = curr.energy - prev.energy;
-      if (delta > 0 && delta < 1000000000.0) {
-        meterDeltaEnergy += delta;
-      }
-
-      final avgPower = math.max(0.0, (prev.power + curr.power) / 2.0);
-      if (avgPower > 0 && dtHours <= 0.5) {
-        integratedEnergy += avgPower * dtHours * 1000.0;
-      }
-    }
-
-    if (first == null || last == null) return const _EnergyWindow.empty();
+    final first = points.first.timestamp;
+    final last = points.last.timestamp;
 
     final spanHours = last.difference(first).inSeconds / 3600.0;
     if (spanHours <= 0) return const _EnergyWindow.empty();
 
-    // Prefer the cumulative meter. If it has not advanced yet because the
-    // period is short or the sensor rounds energy, use power integration.
-    final energy = meterDeltaEnergy > 0 ? meterDeltaEnergy : integratedEnergy;
+    final energy = periodConsumptionFromSeriesMwh(
+      meterReadingsMwh: points.map((p) => p.energy).toList(),
+      timestamps: points.map((p) => p.timestamp).toList(),
+      powersW: points.map((p) => p.power).toList(),
+    );
 
     return _EnergyWindow(
       energyMwh: energy,

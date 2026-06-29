@@ -17,23 +17,22 @@ class EnergyRepository {
   /// Returns a broadcast stream of live metrics for [unitId].
   /// Every successful emission is also persisted to the local cache.
   Stream<EnergyData?> currentMetrics(String unitId) {
-    return FirebaseDatabase.instance
-        .ref('$unitId/current_metrics')
-        .onValue
-        .map((event) {
-      if (event.snapshot.value == null) return null;
-      try {
-        final data = EnergyData.fromJson(
-          event.snapshot.value as Map<dynamic, dynamic>,
-          unitId,
-        );
-        _saveCache(unitId, data); // fire-and-forget
-        FirestoreLogService.instance.logReading(data); // fire-and-forget
-        return data;
-      } catch (_) {
-        return null;
-      }
-    });
+    return FirebaseDatabase.instance.ref('$unitId/current_metrics').onValue.map(
+      (event) {
+        if (event.snapshot.value == null) return null;
+        try {
+          final data = EnergyData.fromJson(
+            event.snapshot.value as Map<dynamic, dynamic>,
+            unitId,
+          );
+          _saveCache(unitId, data); // fire-and-forget
+          FirestoreLogService.instance.logReading(data); // fire-and-forget
+          return data;
+        } catch (_) {
+          return null;
+        }
+      },
+    );
   }
 
   // ── Historical fetch ────────────────────────────────────────────────────────
@@ -55,7 +54,14 @@ class EnergyRepository {
     raw.forEach((key, value) {
       if (value is Map<dynamic, dynamic>) {
         try {
-          list.add(EnergyData.fromJson(value, unitId));
+          final reading = Map<dynamic, dynamic>.from(value);
+          if (reading.containsKey('energy') &&
+              !reading.containsKey('energy_mwh') &&
+              !reading.containsKey('energy_unit') &&
+              !reading.containsKey('energyUnit')) {
+            reading['energy_mwh'] = reading['energy'];
+          }
+          list.add(EnergyData.fromJson(reading, unitId));
         } catch (_) {}
       }
     });
@@ -68,10 +74,7 @@ class EnergyRepository {
   Future<void> _saveCache(String unitId, EnergyData data) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _cachePrefix + unitId,
-        jsonEncode(data.toJson()),
-      );
+      await prefs.setString(_cachePrefix + unitId, jsonEncode(data.toJson()));
     } catch (_) {}
   }
 

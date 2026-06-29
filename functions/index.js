@@ -21,13 +21,18 @@ const emailjsPrivateKey = defineSecret('EMAILJS_PRIVATE_KEY');
 const EMAILJS_SERVICE_ID  = 'service_1tovyp1';
 const EMAILJS_TEMPLATE_ID = 'template_9cy6uou';
 const EMAILJS_PUBLIC_KEY  = 'mD7lZMFFUPuDZlNRf';
+const EMAIL_INTRO = 'Veuillez trouver ci-dessous les données et la Prévision Énergétique de votre installation.';
 
 const UNITS    = ['KOFERT_Unit_1', 'KOFERT_Unit_2', 'KOFERT_Unit_3'];
 const REGION   = 'us-central1';
 const TIMEZONE = 'Africa/Casablanca';
 
-function normalizeEnergyMWh(value, unitId) {
+function normalizeEnergyMWh(value, unitId, unit = '') {
   if (!Number.isFinite(value) || value <= 0) return 0;
+  const normalizedUnit = String(unit || '').trim().toLowerCase();
+  if (normalizedUnit === 'mwh') return value;
+  if (normalizedUnit === 'wh') return value * 1_000;
+  if (normalizedUnit === 'kwh') return value * 1_000_000;
   const looksLikeRawKwh =
     value < 10 || (unitId === 'KOFERT_Unit_1' && value < 1000);
   return looksLikeRawKwh ? value * 1_000_000 : value;
@@ -45,6 +50,42 @@ function sumPositiveEnergyDeltas(readings) {
     previous = current;
   }
   return total;
+}
+
+function integratePowerMWh(docs) {
+  let total = 0;
+  for (let i = 1; i < docs.length; i++) {
+    const prev = docs[i - 1];
+    const curr = docs[i];
+    const prevMs = prev.timestamp && typeof prev.timestamp.toMillis === 'function'
+      ? prev.timestamp.toMillis()
+      : 0;
+    const currMs = curr.timestamp && typeof curr.timestamp.toMillis === 'function'
+      ? curr.timestamp.toMillis()
+      : 0;
+    const dtHours = (currMs - prevMs) / 3_600_000;
+    if (dtHours <= 0 || dtHours > 2) continue;
+    const prevPower = Number.isFinite(prev.power) && prev.power > 0 ? prev.power : 0;
+    const currPower = Number.isFinite(curr.power) && curr.power > 0 ? curr.power : 0;
+    total += ((prevPower + currPower) / 2) * dtHours * 1000;
+  }
+  return total;
+}
+
+function periodConsumptionMWh(docs, unitId) {
+  const meterDelta = sumPositiveEnergyDeltas(
+    docs.map((d) => normalizeEnergyMWh(d.energy || 0, unitId, d.energyUnit || d.energy_unit))
+  );
+  const integrated = integratePowerMWh(docs);
+  if (integrated <= 0) return meterDelta;
+  if (meterDelta <= 0) return integrated;
+
+  const first = docs[0]?.timestamp?.toMillis?.() || 0;
+  const last = docs[docs.length - 1]?.timestamp?.toMillis?.() || first;
+  const spanHours = Math.max(0, (last - first) / 3_600_000);
+  const maxPower = docs.reduce((m, d) => Math.max(m, d.power || 0), 0);
+  const maxAllowed = Math.max(1000, integrated * 4, maxPower * spanHours * 1000 * 1.5);
+  return meterDelta > maxAllowed ? integrated : meterDelta;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -200,6 +241,7 @@ async function sendReport(db, config, now, cutoff, periodLabel, privateKey, isMo
             time:     timeStr(now),
             to_email: toEmail,
             subject,
+            intro:    EMAIL_INTRO,
             message,
           },
         }),
@@ -257,9 +299,7 @@ async function buildUnitReport(db, unitId, cutoff, now, tariffRate) {
   const avgPower       = avg('power');
   const maxPower       = maxV('power');
   const avgPf          = avg('powerFactor');
-  const totalEnergyMWh = sumPositiveEnergyDeltas(
-    docs.map((d) => normalizeEnergyMWh(d.energy || 0, unitId))
-  );
+  const totalEnergyMWh = periodConsumptionMWh(docs, unitId);
   const estimatedCost  = (totalEnergyMWh / 1_000_000) * tariffRate;
 
   const fmtEnergy = (v) =>

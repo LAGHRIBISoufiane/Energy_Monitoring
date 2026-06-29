@@ -22,9 +22,11 @@ class AlertNotificationService {
   AlertNotificationService._();
   static final instance = AlertNotificationService._();
 
-  static const _serviceId  = 'service_1tovyp1';
+  static const _serviceId = 'service_1tovyp1';
   static const _templateId = 'template_9cy6uou';
-  static const _publicKey  = 'mD7lZMFFUPuDZlNRf';
+  static const _publicKey = 'mD7lZMFFUPuDZlNRf';
+  static const _emailIntro =
+      'Veuillez trouver ci-dessous les données et la Prévision Énergétique de votre installation.';
 
   static const _throttleMs = 5 * 60 * 1000; // 5 minutes per alert type
 
@@ -39,10 +41,10 @@ class AlertNotificationService {
   }) async {
     try {
       // Throttle: skip if the same alert type was emailed within 5 min.
-      final prefs  = await SharedPreferences.getInstance();
-      final key    = 'alertEmailSent_$title';
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'alertEmailSent_$title';
       final lastMs = prefs.getInt(key) ?? 0;
-      final now    = DateTime.now();
+      final now = DateTime.now();
       if (now.millisecondsSinceEpoch - lastMs < _throttleMs) return;
       await prefs.setInt(key, now.millisecondsSinceEpoch);
 
@@ -59,20 +61,26 @@ class AlertNotificationService {
       if (emails.isEmpty) return;
 
       final unitLabel = _unitLabel(unitId);
-      final timeFmt   = DateFormat('dd/MM/yyyy HH:mm:ss');
-      final subject   = '⚠️ Alerte KOFERT: $title — $unitId';
-      final message   = _buildAlertHtml(
-          title: title, detail: detail, unitLabel: unitLabel, now: now);
+      final timeFmt = DateFormat('dd/MM/yyyy HH:mm:ss');
+      final subject = '⚠️ Alerte KOFERT: $title — $unitId';
+      final message = _buildAlertHtml(
+        title: title,
+        detail: detail,
+        unitLabel: unitLabel,
+        now: now,
+      );
 
       // Send to all addresses; failures per-address are silently swallowed.
       for (final email in emails) {
-        unawaited(_sendEmail(
-          toEmail:   email,
-          subject:   subject,
-          unitLabel: 'KOFERT Energy — Alerte',
-          time:      timeFmt.format(now),
-          message:   message,
-        ));
+        unawaited(
+          _sendEmail(
+            toEmail: email,
+            subject: subject,
+            unitLabel: 'KOFERT Energy — Alerte',
+            time: timeFmt.format(now),
+            message: message,
+          ),
+        );
       }
     } catch (_) {}
   }
@@ -97,24 +105,26 @@ class AlertNotificationService {
       if (!email.contains('@')) return;
 
       final unitLabel = _unitLabel(unitId);
-      final now       = DateTime.now();
-      final timeFmt   = DateFormat('dd/MM/yyyy HH:mm:ss');
+      final now = DateTime.now();
+      final timeFmt = DateFormat('dd/MM/yyyy HH:mm:ss');
       final typeLabel = _taskTypeLabel(taskType);
-      final subject   = '🔧 Tâche de maintenance assignée — KOFERT';
-      final message   = _buildMaintenanceAssignedHtml(
-        taskType:       typeLabel,
-        unitLabel:      unitLabel,
-        description:    description,
+      final subject = '🔧 Tâche de maintenance assignée — KOFERT';
+      final message = _buildMaintenanceAssignedHtml(
+        taskType: typeLabel,
+        unitLabel: unitLabel,
+        description: description,
         assignedByName: assignedByName,
-        now:            now,
+        now: now,
       );
-      unawaited(_sendEmail(
-        toEmail:   email,
-        subject:   subject,
-        unitLabel: 'KOFERT Energy — Maintenance',
-        time:      timeFmt.format(now),
-        message:   message,
-      ));
+      unawaited(
+        _sendEmail(
+          toEmail: email,
+          subject: subject,
+          unitLabel: 'KOFERT Energy — Maintenance',
+          time: timeFmt.format(now),
+          message: message,
+        ),
+      );
     } catch (_) {}
   }
 
@@ -129,7 +139,7 @@ class AlertNotificationService {
     required String assignedByName,
   }) async {
     try {
-      final snap   = await FirebaseFirestore.instance.collection('users').get();
+      final snap = await FirebaseFirestore.instance.collection('users').get();
       final emails = <String>{
         for (final d in snap.docs)
           if (((d.data()['email'] as String?) ?? '').contains('@'))
@@ -140,25 +150,27 @@ class AlertNotificationService {
       if (emails.isEmpty) return;
 
       final unitLabel = _unitLabel(unitId);
-      final now       = DateTime.now();
-      final timeFmt   = DateFormat('dd/MM/yyyy HH:mm:ss');
+      final now = DateTime.now();
+      final timeFmt = DateFormat('dd/MM/yyyy HH:mm:ss');
       final typeLabel = _taskTypeLabel(taskType);
-      final subject   = '🔧 Tâche de maintenance assignée — KOFERT';
-      final message   = _buildMaintenanceAssignedHtml(
-        taskType:       typeLabel,
-        unitLabel:      unitLabel,
-        description:    description,
+      final subject = '🔧 Tâche de maintenance assignée — KOFERT';
+      final message = _buildMaintenanceAssignedHtml(
+        taskType: typeLabel,
+        unitLabel: unitLabel,
+        description: description,
         assignedByName: assignedByName,
-        now:            now,
+        now: now,
       );
       for (final email in emails) {
-        unawaited(_sendEmail(
-          toEmail:   email,
-          subject:   subject,
-          unitLabel: 'KOFERT Energy — Maintenance',
-          time:      timeFmt.format(now),
-          message:   message,
-        ));
+        unawaited(
+          _sendEmail(
+            toEmail: email,
+            subject: subject,
+            unitLabel: 'KOFERT Energy — Maintenance',
+            time: timeFmt.format(now),
+            message: message,
+          ),
+        );
       }
     } catch (_) {}
   }
@@ -172,11 +184,11 @@ class AlertNotificationService {
     required String unitId,
     required String description,
     required String resolvedByName,
-    String resolutionProblem  = '',
+    String resolutionProblem = '',
     String resolutionSolution = '',
   }) async {
     try {
-      final snap   = await FirebaseFirestore.instance.collection('users').get();
+      final snap = await FirebaseFirestore.instance.collection('users').get();
       final emails = <String>{
         for (final d in snap.docs)
           if (((d.data()['email'] as String?) ?? '').contains('@'))
@@ -187,27 +199,29 @@ class AlertNotificationService {
       if (emails.isEmpty) return;
 
       final unitLabel = _unitLabel(unitId);
-      final now       = DateTime.now();
-      final timeFmt   = DateFormat('dd/MM/yyyy HH:mm:ss');
+      final now = DateTime.now();
+      final timeFmt = DateFormat('dd/MM/yyyy HH:mm:ss');
       final typeLabel = _taskTypeLabel(taskType);
-      final subject   = '✅ Tâche résolue — KOFERT Energy Monitor';
-      final message   = _buildMaintenanceResolvedHtml(
-        taskType:           typeLabel,
-        unitLabel:          unitLabel,
-        description:        description,
-        resolvedByName:     resolvedByName,
-        resolutionProblem:  resolutionProblem,
+      final subject = '✅ Tâche résolue — KOFERT Energy Monitor';
+      final message = _buildMaintenanceResolvedHtml(
+        taskType: typeLabel,
+        unitLabel: unitLabel,
+        description: description,
+        resolvedByName: resolvedByName,
+        resolutionProblem: resolutionProblem,
         resolutionSolution: resolutionSolution,
-        now:                now,
+        now: now,
       );
       for (final email in emails) {
-        unawaited(_sendEmail(
-          toEmail:   email,
-          subject:   subject,
-          unitLabel: 'KOFERT Energy — Maintenance',
-          time:      timeFmt.format(now),
-          message:   message,
-        ));
+        unawaited(
+          _sendEmail(
+            toEmail: email,
+            subject: subject,
+            unitLabel: 'KOFERT Energy — Maintenance',
+            time: timeFmt.format(now),
+            message: message,
+          ),
+        );
       }
     } catch (_) {}
   }
@@ -222,9 +236,9 @@ class AlertNotificationService {
     VoidCallback? onViewAlerts,
   }) async {
     try {
-      final prefs      = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
       final lastCheckMs = prefs.getInt('lastAlertCheckAtMs') ?? 0;
-      final now         = DateTime.now();
+      final now = DateTime.now();
 
       // Update the stored timestamp immediately so a crash doesn't re-show.
       await prefs.setInt('lastAlertCheckAtMs', now.millisecondsSinceEpoch);
@@ -246,7 +260,7 @@ class AlertNotificationService {
       if (snap.docs.isEmpty) return;
       if (!context.mounted) return;
 
-      final count      = snap.docs.length;
+      final count = snap.docs.length;
       final firstTitle =
           (snap.docs.first.data()['title'] as String?) ?? 'Alerte';
       final sinceLabel = DateFormat('dd/MM HH:mm').format(lastCheck);
@@ -257,11 +271,16 @@ class AlertNotificationService {
           duration: const Duration(seconds: 10),
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           content: Row(
             children: [
-              const Icon(Icons.notifications_active,
-                  color: Colors.white, size: 20),
+              const Icon(
+                Icons.notifications_active,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -273,14 +292,17 @@ class AlertNotificationService {
                           ? '1 alerte manquée: $firstTitle'
                           : '$count alertes manquées',
                       style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                     Text(
                       'Depuis $sinceLabel',
                       style: const TextStyle(
-                          color: Colors.white70, fontSize: 11),
+                        color: Colors.white70,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -303,9 +325,12 @@ class AlertNotificationService {
 
   String _taskTypeLabel(String type) {
     switch (type) {
-      case 'repair':      return 'Réparation';
-      case 'calibration': return 'Calibration';
-      default:            return 'Inspection';
+      case 'repair':
+        return 'Réparation';
+      case 'calibration':
+        return 'Calibration';
+      default:
+        return 'Inspection';
     }
   }
 
@@ -372,16 +397,18 @@ class AlertNotificationService {
     required String description,
     required String resolvedByName,
     required DateTime now,
-    String resolutionProblem  = '',
+    String resolutionProblem = '',
     String resolutionSolution = '',
   }) {
-    final timeFmt  = DateFormat('dd/MM/yyyy HH:mm:ss');
-    final desc     = description.isEmpty        ? '—' : description;
-    final problem  = resolutionProblem.isEmpty  ? '—' : resolutionProblem;
+    final timeFmt = DateFormat('dd/MM/yyyy HH:mm:ss');
+    final desc = description.isEmpty ? '—' : description;
+    final problem = resolutionProblem.isEmpty ? '—' : resolutionProblem;
     final solution = resolutionSolution.isEmpty ? '—' : resolutionSolution;
 
-    final hasReport = resolutionProblem.isNotEmpty || resolutionSolution.isNotEmpty;
-    final reportSection = hasReport ? '''
+    final hasReport =
+        resolutionProblem.isNotEmpty || resolutionSolution.isNotEmpty;
+    final reportSection = hasReport
+        ? '''
   <!-- Report section -->
   <div style="margin-top:0;border:1px solid #b8e6bc;border-top:none;padding:0">
     <div style="background:#d4edda;padding:8px 16px;font-size:11px;font-weight:700;
@@ -400,7 +427,8 @@ class AlertNotificationService {
                    vertical-align:top;white-space:pre-wrap">$solution</td>
       </tr>
     </table>
-  </div>''' : '';
+  </div>'''
+        : '';
 
     return '''
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px">
@@ -454,10 +482,14 @@ $reportSection
 
   String _unitLabel(String unitId) {
     switch (unitId) {
-      case 'KOFERT_Unit_1': return 'Lampe (220V AC)';
-      case 'KOFERT_Unit_2': return 'Ventilateur (5V DC)';
-      case 'KOFERT_Unit_3': return 'Pompe (5V DC)';
-      default: return unitId;
+      case 'KOFERT_Unit_1':
+        return 'Lampe (220V AC)';
+      case 'KOFERT_Unit_2':
+        return 'Ventilateur (5V DC)';
+      case 'KOFERT_Unit_3':
+        return 'Pompe (5V DC)';
+      default:
+        return unitId;
     }
   }
 
@@ -531,15 +563,16 @@ $reportSection
           'origin': html.window.location.href,
         },
         body: jsonEncode({
-          'service_id':  _serviceId,
+          'service_id': _serviceId,
           'template_id': _templateId,
-          'user_id':     _publicKey,
+          'user_id': _publicKey,
           'template_params': {
-            'name':     unitLabel,
-            'time':     time,
+            'name': unitLabel,
+            'time': time,
             'to_email': toEmail,
-            'subject':  subject,
-            'message':  message,
+            'subject': subject,
+            'intro': _emailIntro,
+            'message': message,
           },
         }),
       );

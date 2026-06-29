@@ -54,6 +54,21 @@ void main() {
       expect(oldCache.energy, 92000);
     });
 
+    test('keeps explicit mWh values as mWh', () {
+      final reading = EnergyData.fromJson({
+        'voltage': 220.1,
+        'current': 2.148,
+        'power': 1111,
+        'power_factor': 0.92,
+        'energy': 1407.02,
+        'energy_unit': 'mWh',
+        'timestamp': '2026-05-28T20:57:33Z',
+      }, 'KOFERT_Unit_1');
+
+      expect(reading.energy, closeTo(1407.02, 0.001));
+      expect(fmtEnergyUnit(reading.energy, 'kWh'), '0.0014 kWh');
+    });
+
     test('keeps low Unit1 lamp readings but zeros near-zero noise', () {
       final off = EnergyData.fromJson({
         'voltage': 221.0,
@@ -155,6 +170,22 @@ void main() {
         ),
         900,
       );
+    });
+
+    test('falls back to power integration when meter delta is impossible', () {
+      final start = DateTime(2026, 5, 28, 8);
+      final total = periodConsumptionFromSeriesMwh(
+        meterReadingsMwh: [0, 700000000, 1407020000],
+        timestamps: [
+          start,
+          start.add(const Duration(hours: 1)),
+          start.add(const Duration(hours: 2)),
+        ],
+        powersW: [1111, 1111, 1111],
+      );
+
+      expect(total, closeTo(2222000, 0.001));
+      expect(fmtEnergyUnit(total, 'kWh'), '2.22 kWh');
     });
 
     test('monthly display is never lower than daily display', () {

@@ -64,12 +64,20 @@ class EnergyData {
     }
 
     final hasExplicitMwh = json.containsKey('energy_mwh');
+    final energyUnit = (json['energy_unit'] ?? json['energyUnit'])
+        ?.toString()
+        .trim()
+        .toLowerCase();
     final isLocalCache =
         json.containsKey('unit_id') ||
         json.containsKey('apparent_power') ||
         json.containsKey('reactive_power');
     final rawEnergy = n(json['energy_mwh'] ?? json['energy'], 0.0);
-    final energyMwh = hasExplicitMwh || isLocalCache
+    final energyMwh = hasExplicitMwh
+        ? rawEnergy
+        : energyUnit != null && energyUnit.isNotEmpty
+        ? normalizeEnergyFieldMwh(rawEnergy, unitId, unit: energyUnit)
+        : isLocalCache
         ? normalizeStoredEnergyMwh(rawEnergy, unitId)
         : rawEnergy * 1000000.0; // RTDB/ESP32 reports kWh.
 
@@ -118,6 +126,7 @@ class EnergyData {
       'power': power,
       'energy': energy / 1000000.0,
       'energy_mwh': energy,
+      'energy_unit': 'mWh',
       'frequency': frequency,
       'wind_speed': windSpeed,
       'water_level': waterLevel,
